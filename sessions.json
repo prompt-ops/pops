@@ -1,0 +1,9 @@
+[
+  {
+    "name": "test-session",
+    "connection": {
+      "type": "kubernetes",
+      "name": "my-k8s-connection"
+    }
+  }
+]

@@ -32,3 +32,6 @@ Thumbs.db
 # Environment variables file
 .env
 .env.local
+
+# `pops` binary
+pops
