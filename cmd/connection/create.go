@@ -15,14 +15,16 @@ func newCreateCmd() *cobra.Command {
 		Example: `pops connection create kubernetes my-k8s-connection`,
 		Args:    cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			connectionType := args[0]
+			connectionType := strings.ToLower(args[0])
 			connectionName := args[1]
 
-			switch strings.ToLower(connectionType) {
+			switch connectionType {
 			case "kubernetes":
 				handleKubernetesConnection(connectionName)
 			case "rdbms":
 				handleRDBMSConnection(connectionName)
+			case "cloud":
+				handleCloudConnection(connectionName)
 			default:
 				color.Red("Unknown connection type: %s", connectionType)
 			}

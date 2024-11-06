@@ -10,6 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
+	"github.com/olekukonko/tablewriter"
 	"github.com/peterh/liner"
 )
 
@@ -116,15 +117,17 @@ func handleRDBMSConnection(name string) {
 			continue
 		}
 
+		color.Red("Query: %s", sqlQuery)
+
 		// Execute the SQL query
 		result, err := rdbmsConn.ExecuteQuery(sqlQuery)
 		if err != nil {
-			color.Red("Query: %s", sqlQuery)
 			color.Red("Error executing query: %s", err)
 			continue
 		}
 
-		color.Green("Query result:\n%s", result)
+		color.Green("Query result:")
+		fmt.Println(result)
 	}
 
 	if f, err := os.Create(historyFile); err != nil {
@@ -166,25 +169,47 @@ func (r *RDBMSConnection) ExecuteQuery(query string) (string, error) {
 		return "", fmt.Errorf("Error getting columns: %v", err)
 	}
 
-	var result strings.Builder
-	result.WriteString(strings.Join(columns, "\t") + "\n")
+	// Initialize table writer with buffer
+	var tableOutput strings.Builder
+	table := tablewriter.NewWriter(&tableOutput)
+	table.SetHeader(columns)
 
+	// Prepare a slice for each column
+	values := make([]interface{}, len(columns))
+	valuePtrs := make([]interface{}, len(columns))
+	for i := range values {
+		valuePtrs[i] = &values[i]
+	}
+
+	// Iterate over rows
 	for rows.Next() {
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
-		for i := range values {
-			valuePtrs[i] = &values[i]
-		}
-
 		if err := rows.Scan(valuePtrs...); err != nil {
 			return "", fmt.Errorf("Error scanning row: %v", err)
 		}
 
-		for _, value := range values {
-			result.WriteString(fmt.Sprintf("%v\t", value))
+		row := make([]string, len(columns))
+		for i, val := range values {
+			if val == nil {
+				row[i] = "NULL"
+			} else {
+				switch v := val.(type) {
+				case []byte:
+					row[i] = string(v)
+				default:
+					row[i] = fmt.Sprintf("%v", v)
+				}
+			}
 		}
-		result.WriteString("\n")
+		table.Append(row)
 	}
 
-	return result.String(), nil
+	// Check for errors from iterating over rows
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("Row iteration error: %v", err)
+	}
+
+	// Render the table to the buffer
+	table.Render()
+
+	return tableOutput.String(), nil
 }

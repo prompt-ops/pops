@@ -1,7 +1,1 @@
-[
-  {
-    "type": "kubernetes",
-    "name": "my-k8s-connection",
-    "sessions": null
-  }
-]
+[{"type":"kubernetes","name":"my-k8s-connection","sessions":null},{"type":"kubernetes","name":"my-test-kubernetes","sessions":null},{"type":"kubernetes","name":"my-test-kubernetes","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"rdbms","name":"newsletter-db-local","sessions":null},{"type":"azure","name":"local-azure","sessions":null},{"type":"azure","name":"local-azure","sessions":null},{"type":"azure","name":"local-azure","sessions":null},{"type":"kubernetes","name":"elena-test","sessions":null}]
