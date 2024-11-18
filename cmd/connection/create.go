@@ -5,6 +5,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/prompt-ops/cli/cmd/connection/db"
 )
 
 func newCreateCmd() *cobra.Command {
@@ -23,6 +25,8 @@ func newCreateCmd() *cobra.Command {
 				handleKubernetesConnection(connectionName)
 			case "rdbms":
 				handleRDBMSConnection(connectionName)
+			case "db":
+				db.HandleDatabaseConnection(connectionName)
 			case "cloud":
 				handleCloudConnection(connectionName)
 			default:

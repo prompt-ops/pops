@@ -10,6 +10,15 @@
 
 ## Available Commands
 
+- `pops connect` will start an interactive command
+- `pops connect kubernetes`
+- `pops connect db`
+- `pops connect cloud`
+- `pops list connections`
+- `pops list sessions --connection-name test-conn`
+- `pops resume session my-previous-session`
+- `pops start session new-session --connection-name test-conn`
+
 - `pops connection create kubernetes my-k8s-connection`
 - `pops connection create rdbms my-db`
 - `pops connection list`

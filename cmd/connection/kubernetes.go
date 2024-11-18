@@ -15,6 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	config "github.com/prompt-ops/cli/cmd/config"
 )
 
 type KubernetesConnection struct {
@@ -46,14 +48,14 @@ func NewKubernetesConnection(selectedContext *string) (*KubernetesConnection, er
 }
 
 func handleKubernetesConnection(name string) {
-	config, err := clientcmd.LoadFromFile(clientcmd.RecommendedHomeFile)
+	kubeconfig, err := clientcmd.LoadFromFile(clientcmd.RecommendedHomeFile)
 	if err != nil {
 		color.Red("Error loading kubeconfig file: %v", err)
 		return
 	}
 
-	contexts := config.Contexts
-	currentContext := config.CurrentContext
+	contexts := kubeconfig.Contexts
+	currentContext := kubeconfig.CurrentContext
 
 	color.Cyan("Select a Kubernetes context to use:")
 	color.Cyan("0. None (use current context: %s)", currentContext)
@@ -89,11 +91,11 @@ func handleKubernetesConnection(name string) {
 	}
 
 	// Save the connection details
-	conn := Connection{
+	conn := config.Connection{
 		Type: "kubernetes",
 		Name: name,
 	}
-	if err := SaveConnection(conn); err != nil {
+	if err := config.SaveConnection(conn); err != nil {
 		color.Red("Error saving connection: %v", err)
 		return
 	}
@@ -158,19 +160,19 @@ func handleKubernetesConnection(name string) {
 		}
 
 		// Example of mapping natural language to a kubectl command using OpenAI
-		kubectlCmd, err := getCommand(input, KubernetesCommand)
+		parsedResponse, err := getCommand(input, KubernetesCommand, "")
 		if err != nil {
 			color.Red("Error: %s", err)
 			continue
 		}
 
-		if kubectlCmd == "" {
+		if parsedResponse.Command == "" {
 			color.Red("Sorry, I didn't understand that command.")
 			continue
 		}
 
 		// Warn the user and ask for confirmation
-		color.Yellow("The following command will be executed: %s", kubectlCmd)
+		color.Yellow("The following command will be executed: %s", parsedResponse.Command)
 		confirmationPrompt := "Do you want to proceed? (Y/n): "
 		confirmation, err := line.Prompt(confirmationPrompt)
 		if err == liner.ErrPromptAborted {
@@ -188,13 +190,45 @@ func handleKubernetesConnection(name string) {
 		}
 
 		// Execute the kubectl command
-		output, err := exec.Command("sh", "-c", kubectlCmd).CombinedOutput()
+		output, err := exec.Command("sh", "-c", parsedResponse.Command).CombinedOutput()
 		if err != nil {
 			color.Red("Error: %s", err)
 			color.Red("Command output: %s", string(output))
 		} else {
-			color.Green("Running kubectl command: %s", kubectlCmd)
+			color.Green("Running kubectl command: %s", parsedResponse.Command)
 			fmt.Println(string(output))
+		}
+
+		// Display suggested next steps
+		if len(parsedResponse.SuggestedSteps) > 0 {
+			nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
+			if err != nil {
+				color.Red("Error: %s", err)
+				continue
+			}
+
+			if nextStep != "" {
+				color.Green("\nExecuting selected step: %s", nextStep)
+				// Reprocess the selected step as a new command
+				parsedResponse, err = getCommand(nextStep, KubernetesCommand, "")
+				if err != nil {
+					color.Red("Error processing selected step: %s", err)
+					continue
+				}
+
+				output, err = exec.Command("sh", "-c", parsedResponse.Command).CombinedOutput()
+				if err != nil {
+					color.Red("Error: %s", err)
+					color.Red("Command output: %s", string(output))
+				} else {
+					color.Green("Running kubectl command: %s", parsedResponse.Command)
+					fmt.Println(string(output))
+				}
+			} else {
+				color.Yellow("Skipping suggested steps.")
+			}
+		} else {
+			color.Yellow("No suggested next steps available.")
 		}
 	}
 
@@ -229,4 +263,34 @@ func (kc *KubernetesConnection) getCurrentContext() (string, error) {
 	}
 
 	return config.CurrentContext, nil
+}
+
+func selectNextStep(suggestions []string) (string, error) {
+	if len(suggestions) == 0 {
+		return "", fmt.Errorf("No suggestions available")
+	}
+
+	color.Cyan("\nPlease select one of the suggested next steps:")
+	for i, step := range suggestions {
+		color.Yellow("%d. %s", i+1, step)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	color.Cyan("Enter the number of the step you want to execute (or press Enter to skip): ")
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", fmt.Errorf("Error reading input: %v", err)
+	}
+
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return "", nil // Skip selection
+	}
+
+	selectedIndex, err := strconv.Atoi(input)
+	if err != nil || selectedIndex < 1 || selectedIndex > len(suggestions) {
+		return "", fmt.Errorf("Invalid selection")
+	}
+
+	return suggestions[selectedIndex-1], nil
 }

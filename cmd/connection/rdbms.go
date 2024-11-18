@@ -12,6 +12,8 @@ import (
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
 	"github.com/olekukonko/tablewriter"
 	"github.com/peterh/liner"
+
+	config "github.com/prompt-ops/cli/cmd/config"
 )
 
 type RDBMSConnection struct {
@@ -42,11 +44,11 @@ func handleRDBMSConnection(name string) {
 	connectionString = strings.TrimSpace(connectionString)
 
 	// Save the connection details
-	conn := Connection{
+	conn := config.Connection{
 		Type: "rdbms",
 		Name: name,
 	}
-	if err := SaveConnection(conn); err != nil {
+	if err := config.SaveConnection(conn); err != nil {
 		color.Red("Error saving connection: %v", err)
 		return
 	}
@@ -73,6 +75,20 @@ func handleRDBMSConnection(name string) {
 	} else {
 		color.Yellow("No tables found in the database.")
 	}
+
+	// Fetch additional database information
+	tableColumns := make(map[string]map[string]string)
+	for _, table := range tables {
+		columns, err := rdbmsConn.GetTableColumns(table)
+		if err != nil {
+			color.Red("Error getting columns for table %s: %v", table, err)
+			continue
+		}
+		tableColumns[table] = columns
+	}
+
+	// Provide context to the AI
+	dbContext := fmt.Sprintf("Tables: %v, Columns: %v", tables, tableColumns)
 
 	color.Cyan("Starting **pops** interactive shell. Type your SQL query, or type 'exit' to quit.")
 
@@ -111,16 +127,16 @@ func handleRDBMSConnection(name string) {
 		}
 
 		// Generate the SQL query using OpenAI
-		sqlQuery, err := getCommand(input, RDBMSQuery)
+		parsedResponse, err := getCommand(input, RDBMSQuery, dbContext)
 		if err != nil {
 			color.Red("Error generating SQL query: %s", err)
 			continue
 		}
 
-		color.Red("Query: %s", sqlQuery)
+		color.Red("Query: %s", parsedResponse.Command)
 
 		// Execute the SQL query
-		result, err := rdbmsConn.ExecuteQuery(sqlQuery)
+		result, err := rdbmsConn.ExecuteQuery(parsedResponse.Command)
 		if err != nil {
 			color.Red("Error executing query: %s", err)
 			continue
@@ -128,6 +144,37 @@ func handleRDBMSConnection(name string) {
 
 		color.Green("Query result:")
 		fmt.Println(result)
+
+		// Display suggested next steps
+		if len(parsedResponse.SuggestedSteps) > 0 {
+			nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
+			if err != nil {
+				color.Red("Error: %s", err)
+				continue
+			}
+
+			if nextStep != "" {
+				color.Green("\nExecuting selected step: %s", nextStep)
+				parsedResponse, err = getCommand(nextStep, RDBMSQuery, dbContext)
+				if err != nil {
+					color.Red("Error processing selected step: %s", err)
+					continue
+				}
+
+				result, err = rdbmsConn.ExecuteQuery(parsedResponse.Command)
+				if err != nil {
+					color.Red("Error executing query: %s", err)
+					continue
+				}
+
+				color.Green("Query result:")
+				fmt.Println(result)
+			} else {
+				color.Yellow("Skipping suggested steps.")
+			}
+		} else {
+			color.Yellow("No suggested next steps available.")
+		}
 	}
 
 	if f, err := os.Create(historyFile); err != nil {
@@ -212,4 +259,24 @@ func (r *RDBMSConnection) ExecuteQuery(query string) (string, error) {
 	table.Render()
 
 	return tableOutput.String(), nil
+}
+
+func (r *RDBMSConnection) GetTableColumns(tableName string) (map[string]string, error) {
+	query := fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '%s'", tableName)
+	rows, err := r.DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("Error querying columns for table %s: %v", tableName, err)
+	}
+	defer rows.Close()
+
+	columns := make(map[string]string)
+	for rows.Next() {
+		var columnName, dataType string
+		if err := rows.Scan(&columnName, &dataType); err != nil {
+			return nil, fmt.Errorf("Error scanning column for table %s: %v", tableName, err)
+		}
+		columns[columnName] = dataType
+	}
+
+	return columns, nil
 }

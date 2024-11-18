@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+
+	config "github.com/prompt-ops/cli/cmd/config"
 )
 
 // handleCloudConnection handles the creation of a cloud connection
@@ -34,11 +36,11 @@ func handleAzureConnection(name string) {
 	}
 
 	// Save the connection details
-	conn := Connection{
+	conn := config.Connection{
 		Type: "azure",
 		Name: name,
 	}
-	if err := SaveConnection(conn); err != nil {
+	if err := config.SaveConnection(conn); err != nil {
 		color.Red("Error saving connection: %v", err)
 		return
 	}
