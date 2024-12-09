@@ -34,6 +34,13 @@ func SaveConnection(conn Connection) error {
 		}
 	}
 
+	// Check if a connection with the same name
+	for _, existingConnection := range connections {
+		if existingConnection.Name == conn.Name {
+			return fmt.Errorf("connection with the same name already exists")
+		}
+	}
+
 	// Append the new connection
 	connections = append(connections, conn)
 
@@ -63,6 +70,45 @@ func ListConnections() ([]Connection, error) {
 	return connections, nil
 }
 
+// Make this more efficient.
+func DeleteConnectionByName(connectionName string) error {
+	existingConnections, err := ListConnections()
+	if err != nil {
+		return err
+	}
+
+	var updatedConnections []Connection
+	for _, conn := range existingConnections {
+		if conn.Name == connectionName {
+			continue
+		}
+		updatedConnections = append(updatedConnections, conn)
+	}
+
+	file, err := os.Create(connectionsConfigFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return json.NewEncoder(file).Encode(updatedConnections)
+}
+
+func DeleteAllConnections() error {
+	file, err := os.Create(connectionsConfigFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	emptyList := []Connection{}
+	if err := json.NewEncoder(file).Encode(emptyList); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func SaveSession(session Session) error {
 	var sessions []Session
 
@@ -77,10 +123,8 @@ func SaveSession(session Session) error {
 
 	// Check if a session with the same name, connection name, and connection type already exists
 	for _, existingSession := range sessions {
-		if existingSession.Name == session.Name &&
-			existingSession.Connection.Name == session.Connection.Name &&
-			existingSession.Connection.Type == session.Connection.Type {
-			return fmt.Errorf("session with the same name, connection name, and connection type already exists")
+		if existingSession.Name == session.Name {
+			return fmt.Errorf("another session with the same name already exists")
 		}
 	}
 
@@ -125,4 +169,42 @@ func ListSessionsByConnection(connectionName string) ([]Session, error) {
 	}
 
 	return filteredSessions, nil
+}
+
+func DeleteSessionByName(sessionName string) error {
+	existingSessions, err := ListSessions()
+	if err != nil {
+		return err
+	}
+
+	var updatedSessions []Session
+	for _, session := range existingSessions {
+		if session.Name == sessionName {
+			continue
+		}
+		updatedSessions = append(updatedSessions, session)
+	}
+
+	file, err := os.Create(sessionsConfigFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return json.NewEncoder(file).Encode(updatedSessions)
+}
+
+func DeleteAllSessions() error {
+	file, err := os.Create(sessionsConfigFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	emptyList := []Session{}
+	if err := json.NewEncoder(file).Encode(emptyList); err != nil {
+		return err
+	}
+
+	return nil
 }

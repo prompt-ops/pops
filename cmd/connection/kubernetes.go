@@ -68,7 +68,7 @@ func handleKubernetesConnection(name string) {
 	reader := bufio.NewReader(os.Stdin)
 	color.Cyan("Enter the number of the context to use: ")
 	selection, _ := reader.ReadString('\n')
-	selection = strings.TrimSpace(selection)
+	selection = strings.TrimSpace(selection) // This will remove both \r and \n
 
 	selectedIndex, err := strconv.Atoi(selection)
 	if err != nil || selectedIndex < 0 || selectedIndex >= i {
@@ -199,37 +199,37 @@ func handleKubernetesConnection(name string) {
 			fmt.Println(string(output))
 		}
 
-		// Display suggested next steps
-		if len(parsedResponse.SuggestedSteps) > 0 {
-			nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
-			if err != nil {
-				color.Red("Error: %s", err)
-				continue
-			}
+		// // Display suggested next steps
+		// if len(parsedResponse.SuggestedSteps) > 0 {
+		// 	nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
+		// 	if err != nil {
+		// 		color.Red("Error: %s", err)
+		// 		continue
+		// 	}
 
-			if nextStep != "" {
-				color.Green("\nExecuting selected step: %s", nextStep)
-				// Reprocess the selected step as a new command
-				parsedResponse, err = getCommand(nextStep, KubernetesCommand, "")
-				if err != nil {
-					color.Red("Error processing selected step: %s", err)
-					continue
-				}
+		// 	if nextStep != "" {
+		// 		color.Green("\nExecuting selected step: %s", nextStep)
+		// 		// Reprocess the selected step as a new command
+		// 		parsedResponse, err = getCommand(nextStep, KubernetesCommand, "")
+		// 		if err != nil {
+		// 			color.Red("Error processing selected step: %s", err)
+		// 			continue
+		// 		}
 
-				output, err = exec.Command("sh", "-c", parsedResponse.Command).CombinedOutput()
-				if err != nil {
-					color.Red("Error: %s", err)
-					color.Red("Command output: %s", string(output))
-				} else {
-					color.Green("Running kubectl command: %s", parsedResponse.Command)
-					fmt.Println(string(output))
-				}
-			} else {
-				color.Yellow("Skipping suggested steps.")
-			}
-		} else {
-			color.Yellow("No suggested next steps available.")
-		}
+		// 		output, err = exec.Command("sh", "-c", parsedResponse.Command).CombinedOutput()
+		// 		if err != nil {
+		// 			color.Red("Error: %s", err)
+		// 			color.Red("Command output: %s", string(output))
+		// 		} else {
+		// 			color.Green("Running kubectl command: %s", parsedResponse.Command)
+		// 			fmt.Println(string(output))
+		// 		}
+		// 	} else {
+		// 		color.Yellow("Skipping suggested steps.")
+		// 	}
+		// } else {
+		// 	color.Yellow("No suggested next steps available.")
+		// }
 	}
 
 	if f, err := os.Create(historyFile); err != nil {

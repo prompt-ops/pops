@@ -22,4 +22,5 @@ func Execute() {
 func init() {
 	SessionRootCmd.AddCommand(newCreateCmd())
 	SessionRootCmd.AddCommand(newListCmd())
+	SessionRootCmd.AddCommand(newDeleteCmd())
 }

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/peterh/liner"
 
 	config "github.com/prompt-ops/cli/cmd/config"
 )
@@ -61,6 +63,90 @@ func handleAzureConnection(name string) {
 		}
 	} else {
 		color.Yellow("No Azure Resource Groups found.")
+	}
+
+	color.Cyan("Starting **pops** interactive shell. Type your command, or type 'exit' to quit.")
+
+	line := liner.NewLiner()
+	defer line.Close()
+
+	line.SetCtrlCAborts(true)
+
+	historyFile := filepath.Join(os.TempDir(), ".pops_history")
+	if f, err := os.Open(historyFile); err == nil {
+		line.ReadHistory(f)
+		f.Close()
+	}
+
+	for {
+		currentContext := "Azure"
+		prompt := fmt.Sprintf("[%s] > ", currentContext)
+		input, err := line.Prompt(prompt)
+		if err == liner.ErrPromptAborted {
+			color.Cyan("Exiting PromptOps shell.")
+			break
+		} else if err != nil {
+			color.Red("Error reading line: %s", err)
+			continue
+		}
+
+		input = strings.TrimSpace(input)
+		if input == "" {
+			continue
+		}
+
+		line.AppendHistory(input)
+
+		if input == "exit" {
+			color.Cyan("Exiting PromptOps shell.")
+			break
+		}
+
+		parsedResponse, err := getCommand(input, CloudCommand, "")
+		if err != nil {
+			color.Red("Error: %s", err)
+			continue
+		}
+
+		if parsedResponse.Command == "" {
+			color.Red("Sorry, I didn't understand that command.")
+			continue
+		}
+
+		// Warn the user and ask for confirmation
+		color.Yellow("The following command will be executed: %s", parsedResponse.Command)
+		confirmationPrompt := "Do you want to proceed? (Y/n): "
+		confirmation, err := line.Prompt(confirmationPrompt)
+		if err == liner.ErrPromptAborted {
+			color.Cyan("Command execution aborted.")
+			continue
+		} else if err != nil {
+			color.Red("Error reading confirmation: %s", err)
+			continue
+		}
+
+		confirmation = strings.TrimSpace(confirmation)
+		if strings.ToLower(confirmation) != "y" {
+			color.Cyan("Command execution aborted.")
+			continue
+		}
+
+		// Execute the kubectl command
+		output, err := exec.Command("sh", "-c", parsedResponse.Command).CombinedOutput()
+		if err != nil {
+			color.Red("Error: %s", err)
+			color.Red("Command output: %s", string(output))
+		} else {
+			color.Green("Running az command: %s", parsedResponse.Command)
+			fmt.Println(string(output))
+		}
+	}
+
+	if f, err := os.Create(historyFile); err != nil {
+		color.Red("Error writing history file: %s", err)
+	} else {
+		line.WriteHistory(f)
+		f.Close()
 	}
 }
 

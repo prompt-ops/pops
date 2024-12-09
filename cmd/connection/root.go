@@ -27,4 +27,6 @@ func init() {
 	ConnectionRootCmd.AddCommand(newCreateCmd())
 	// List all connections command
 	ConnectionRootCmd.AddCommand(newListCmd())
+	// Delete a connection or all connections command
+	ConnectionRootCmd.AddCommand(newDeleteCmd())
 }

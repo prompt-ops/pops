@@ -17,6 +17,7 @@ type CommandType string
 const (
 	KubernetesCommand CommandType = "kubectl command"
 	RDBMSQuery        CommandType = "PostgreSQL SQL query"
+	CloudCommand      CommandType = "Azure `az` command"
 )
 
 var (
@@ -33,6 +34,11 @@ var (
 	Suggested next steps:
 	1. Filter the results based on a specific condition.
 	2. Join this table with another table.
+
+	Command: az vm list
+	Suggested next steps:
+	1. Start a specific VM.
+	2. Stop a specific VM.
 	
 	Do not include any Markdown-type formatting. Only provide plain text.`
 

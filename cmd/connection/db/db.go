@@ -157,7 +157,7 @@ func HandleDatabaseConnection(name string) {
 		color.Green("Query result:")
 		fmt.Println(result)
 
-		// Display suggested next steps
+		// // Display suggested next steps
 		// if len(parsedResponse.SuggestedSteps) > 0 {
 		// 	nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
 		// 	if err != nil {

@@ -145,36 +145,36 @@ func handleRDBMSConnection(name string) {
 		color.Green("Query result:")
 		fmt.Println(result)
 
-		// Display suggested next steps
-		if len(parsedResponse.SuggestedSteps) > 0 {
-			nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
-			if err != nil {
-				color.Red("Error: %s", err)
-				continue
-			}
+		// // Display suggested next steps
+		// if len(parsedResponse.SuggestedSteps) > 0 {
+		// 	nextStep, err := selectNextStep(parsedResponse.SuggestedSteps)
+		// 	if err != nil {
+		// 		color.Red("Error: %s", err)
+		// 		continue
+		// 	}
 
-			if nextStep != "" {
-				color.Green("\nExecuting selected step: %s", nextStep)
-				parsedResponse, err = getCommand(nextStep, RDBMSQuery, dbContext)
-				if err != nil {
-					color.Red("Error processing selected step: %s", err)
-					continue
-				}
+		// 	if nextStep != "" {
+		// 		color.Green("\nExecuting selected step: %s", nextStep)
+		// 		parsedResponse, err = getCommand(nextStep, RDBMSQuery, dbContext)
+		// 		if err != nil {
+		// 			color.Red("Error processing selected step: %s", err)
+		// 			continue
+		// 		}
 
-				result, err = rdbmsConn.ExecuteQuery(parsedResponse.Command)
-				if err != nil {
-					color.Red("Error executing query: %s", err)
-					continue
-				}
+		// 		result, err = rdbmsConn.ExecuteQuery(parsedResponse.Command)
+		// 		if err != nil {
+		// 			color.Red("Error executing query: %s", err)
+		// 			continue
+		// 		}
 
-				color.Green("Query result:")
-				fmt.Println(result)
-			} else {
-				color.Yellow("Skipping suggested steps.")
-			}
-		} else {
-			color.Yellow("No suggested next steps available.")
-		}
+		// 		color.Green("Query result:")
+		// 		fmt.Println(result)
+		// 	} else {
+		// 		color.Yellow("Skipping suggested steps.")
+		// 	}
+		// } else {
+		// 	color.Yellow("No suggested next steps available.")
+		// }
 	}
 
 	if f, err := os.Create(historyFile); err != nil {
