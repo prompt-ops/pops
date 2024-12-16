@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/prompt-ops/cli/cmd/connection/db"
+	"github.com/prompt-ops/cli/cmd/connection/kubernetes"
 )
 
 func newCreateCmd() *cobra.Command {
@@ -22,13 +23,9 @@ func newCreateCmd() *cobra.Command {
 
 			switch connectionType {
 			case "kubernetes":
-				handleKubernetesConnection(connectionName)
-			case "rdbms":
-				handleRDBMSConnection(connectionName)
+				kubernetes.HandleKubernetesConnection(connectionName)
 			case "db":
 				db.HandleDatabaseConnection(connectionName)
-			case "cloud":
-				handleCloudConnection(connectionName)
 			default:
 				color.Red("Unknown connection type: %s", connectionType)
 			}

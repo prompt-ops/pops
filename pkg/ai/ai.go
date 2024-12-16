@@ -1,4 +1,4 @@
-package connection
+package ai
 
 import (
 	"context"
@@ -12,29 +12,11 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
-type CommandType string
-
-const (
-	KubernetesCommand CommandType = "kubectl command"
-	RDBMSQuery        CommandType = "PostgreSQL SQL query"
-	CloudCommand      CommandType = "Azure `az` command"
-)
-
 var (
 	// defaultSystemMessage is the system message that is sent to the OpenAI API to help it understand the context of the user's input.
 	defaultSystemMessage = `You are a helpful assistant that translates natural language commands to %s. 
 	This is how your response structure MUST be like:
 	
-	Command: kubectl get pods
-	Suggested next steps:
-	1. Describe one of the pods.
-	2. View logs of one of the pods.
-
-	Command: SELECT * FROM table_name;
-	Suggested next steps:
-	1. Filter the results based on a specific condition.
-	2. Join this table with another table.
-
 	Command: az vm list
 	Suggested next steps:
 	1. Start a specific VM.
@@ -52,7 +34,7 @@ type ParsedResponse struct {
 	SuggestedSteps []string
 }
 
-func getCommand(input string, commandType CommandType, extraContext string) (ParsedResponse, error) {
+func GetCommand(input string, commandType string, extraContext string) (ParsedResponse, error) {
 	err := godotenv.Load(".env.local")
 	if err != nil {
 		return ParsedResponse{}, fmt.Errorf("Error loading .env.local file: %v", err)
@@ -68,7 +50,7 @@ func getCommand(input string, commandType CommandType, extraContext string) (Par
 	)
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(fmt.Sprintf(defaultSystemMessage, string(commandType))),
+			openai.SystemMessage(fmt.Sprintf(defaultSystemMessage, commandType)),
 			openai.UserMessage(fmt.Sprintf(defaultUserMessage, input, extraContext)),
 		}),
 		Model: openai.F(openai.ChatModelGPT4o),
@@ -78,8 +60,7 @@ func getCommand(input string, commandType CommandType, extraContext string) (Par
 	}
 
 	response := strings.TrimSpace(chatCompletion.Choices[0].Message.Content)
-	fmt.Printf("AI response: %s\n", response)
-	parsedResponse, err := parseResponse(response, commandType)
+	parsedResponse, err := parseResponse(response)
 	if err != nil {
 		return ParsedResponse{}, err
 	}
@@ -88,7 +69,7 @@ func getCommand(input string, commandType CommandType, extraContext string) (Par
 }
 
 // parseResponse processes the AI response to extract the command and suggested next steps.
-func parseResponse(response string, commandType CommandType) (ParsedResponse, error) {
+func parseResponse(response string) (ParsedResponse, error) {
 	parsed := ParsedResponse{}
 
 	// Split the response into lines for parsing
@@ -106,18 +87,6 @@ func parseResponse(response string, commandType CommandType) (ParsedResponse, er
 		}
 	}
 
-	// Validate the extracted command
-	if commandType == KubernetesCommand && !strings.HasPrefix(parsed.Command, "kubectl") {
-		return ParsedResponse{}, fmt.Errorf("Invalid Kubernetes command: %s", parsed.Command)
-	}
-	if commandType == RDBMSQuery {
-		fmt.Println(parsed.Command)
-		parsed.Command = cleanSQLQuery(parsed.Command)
-		if !isValidSQLQuery(parsed.Command) {
-			return ParsedResponse{}, fmt.Errorf("Invalid SQL query: %s", parsed.Command)
-		}
-	}
-
 	return parsed, nil
 }
 
@@ -132,33 +101,4 @@ func parseSuggestions(lines []string) []string {
 		}
 	}
 	return suggestions
-}
-
-// cleanSQLQuery processes the SQL query to remove unnecessary formatting and enforce standards.
-func cleanSQLQuery(query string) string {
-	query = strings.TrimPrefix(query, "Query: ")
-	query = strings.TrimPrefix(query, "```sql")
-	query = strings.TrimSuffix(query, "```")
-	query = strings.TrimSpace(query)
-	return quoteCamelCaseColumns(query)
-}
-
-// isValidSQLQuery checks if the query starts with a valid SQL command.
-func isValidSQLQuery(query string) bool {
-	fmt.Printf("Query: %s\n", query)
-	validPrefixes := []string{"SELECT", "INSERT", "UPDATE", "DELETE"}
-	for _, prefix := range validPrefixes {
-		if strings.HasPrefix(strings.ToUpper(query), prefix) {
-			return true
-		}
-	}
-	return false
-}
-
-func quoteCamelCaseColumns(query string) string {
-	// Regular expression to match camel case column names
-	re := regexp.MustCompile(`\b([a-z]+[A-Z][a-zA-Z0-9]*)\b`)
-	return re.ReplaceAllStringFunc(query, func(match string) string {
-		return fmt.Sprintf(`"%s"`, match)
-	})
 }

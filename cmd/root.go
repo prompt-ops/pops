@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	connection "github.com/prompt-ops/cli/cmd/connection"
-	session "github.com/prompt-ops/cli/cmd/session"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -34,5 +33,4 @@ func Execute() {
 func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.AddCommand(connection.ConnectionRootCmd)
-	rootCmd.AddCommand(session.SessionRootCmd)
 }

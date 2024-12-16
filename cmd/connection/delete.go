@@ -4,7 +4,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	config "github.com/prompt-ops/cli/cmd/config"
+	config "github.com/prompt-ops/cli/pkg/config"
 )
 
 func newDeleteCmd() *cobra.Command {

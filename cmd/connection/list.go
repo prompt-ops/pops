@@ -2,13 +2,12 @@ package connection
 
 import (
 	"os"
-	"strconv"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	config "github.com/prompt-ops/cli/cmd/config"
+	config "github.com/prompt-ops/cli/pkg/config"
 )
 
 func newListCmd() *cobra.Command {
@@ -29,13 +28,12 @@ func newListCmd() *cobra.Command {
 			}
 
 			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"Name", "Type", "Sessions"})
+			table.SetHeader([]string{"Name", "Type"})
 
 			for _, conn := range connections {
 				table.Append([]string{
 					conn.Name,
 					conn.Type,
-					strconv.Itoa(len(conn.Sessions)),
 				})
 			}
 

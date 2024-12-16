@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Connection struct {
 	Type     string    `json:"type"`
+	SubType  string    `json:"subType"`
 	Name     string    `json:"name"`
 	Sessions []Session `json:"sessions"`
 }
@@ -109,102 +111,17 @@ func DeleteAllConnections() error {
 	return nil
 }
 
-func SaveSession(session Session) error {
-	var sessions []Session
+func CheckIfNameExists(name string) bool {
+	connections, err := ListConnections()
+	if err != nil {
+		return false
+	}
 
-	// Read existing connections from the file
-	file, err := os.Open(sessionsConfigFilePath)
-	if err == nil {
-		defer file.Close()
-		if err := json.NewDecoder(file).Decode(&sessions); err != nil {
-			return err
+	for _, conn := range connections {
+		if strings.ToLower(conn.Name) == strings.ToLower(name) {
+			return true
 		}
 	}
 
-	// Check if a session with the same name, connection name, and connection type already exists
-	for _, existingSession := range sessions {
-		if existingSession.Name == session.Name {
-			return fmt.Errorf("another session with the same name already exists")
-		}
-	}
-
-	sessions = append(sessions, session)
-
-	file, err = os.Create(sessionsConfigFilePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	return json.NewEncoder(file).Encode(sessions)
-}
-
-func ListSessions() ([]Session, error) {
-	var sessions []Session
-
-	file, err := os.Open(sessionsConfigFilePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	if err := json.NewDecoder(file).Decode(&sessions); err != nil {
-		return nil, err
-	}
-
-	return sessions, nil
-}
-
-func ListSessionsByConnection(connectionName string) ([]Session, error) {
-	sessions, err := ListSessions()
-	if err != nil {
-		return nil, err
-	}
-
-	var filteredSessions []Session
-	for _, session := range sessions {
-		if session.Connection.Name == connectionName {
-			filteredSessions = append(filteredSessions, session)
-		}
-	}
-
-	return filteredSessions, nil
-}
-
-func DeleteSessionByName(sessionName string) error {
-	existingSessions, err := ListSessions()
-	if err != nil {
-		return err
-	}
-
-	var updatedSessions []Session
-	for _, session := range existingSessions {
-		if session.Name == sessionName {
-			continue
-		}
-		updatedSessions = append(updatedSessions, session)
-	}
-
-	file, err := os.Create(sessionsConfigFilePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	return json.NewEncoder(file).Encode(updatedSessions)
-}
-
-func DeleteAllSessions() error {
-	file, err := os.Create(sessionsConfigFilePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	emptyList := []Session{}
-	if err := json.NewEncoder(file).Encode(emptyList); err != nil {
-		return err
-	}
-
-	return nil
+	return false
 }

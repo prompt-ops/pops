@@ -1,4 +1,4 @@
-package connection
+package kubernetes
 
 import (
 	"bufio"
@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	config "github.com/prompt-ops/cli/cmd/config"
+	config "github.com/prompt-ops/cli/pkg/config"
 )
 
 type KubernetesConnection struct {
@@ -47,7 +47,7 @@ func NewKubernetesConnection(selectedContext *string) (*KubernetesConnection, er
 	}, nil
 }
 
-func handleKubernetesConnection(name string) {
+func HandleKubernetesConnection(name string) {
 	kubeconfig, err := clientcmd.LoadFromFile(clientcmd.RecommendedHomeFile)
 	if err != nil {
 		color.Red("Error loading kubeconfig file: %v", err)

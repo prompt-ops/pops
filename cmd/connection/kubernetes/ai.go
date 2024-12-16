@@ -1,4 +1,4 @@
-package db
+package kubernetes
 
 import (
 	"context"
@@ -12,15 +12,33 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
+type CommandType string
+
+const (
+	KubernetesCommand CommandType = "kubectl command"
+	RDBMSQuery        CommandType = "PostgreSQL SQL query"
+	CloudCommand      CommandType = "Azure `az` command"
+)
+
 var (
 	// defaultSystemMessage is the system message that is sent to the OpenAI API to help it understand the context of the user's input.
 	defaultSystemMessage = `You are a helpful assistant that translates natural language commands to %s. 
 	This is how your response structure MUST be like:
+	
+	Command: kubectl get pods
+	Suggested next steps:
+	1. Describe one of the pods.
+	2. View logs of one of the pods.
 
 	Command: SELECT * FROM table_name;
 	Suggested next steps:
 	1. Filter the results based on a specific condition.
 	2. Join this table with another table.
+
+	Command: az vm list
+	Suggested next steps:
+	1. Start a specific VM.
+	2. Stop a specific VM.
 	
 	Do not include any Markdown-type formatting. Only provide plain text.`
 
@@ -34,7 +52,7 @@ type ParsedResponse struct {
 	SuggestedSteps []string
 }
 
-func GetCommand(input string, dbtype DatabaseType, extraContext string) (ParsedResponse, error) {
+func getCommand(input string, commandType CommandType, extraContext string) (ParsedResponse, error) {
 	err := godotenv.Load(".env.local")
 	if err != nil {
 		return ParsedResponse{}, fmt.Errorf("Error loading .env.local file: %v", err)
@@ -50,7 +68,7 @@ func GetCommand(input string, dbtype DatabaseType, extraContext string) (ParsedR
 	)
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(fmt.Sprintf(defaultSystemMessage, string(dbtype.Command))),
+			openai.SystemMessage(fmt.Sprintf(defaultSystemMessage, string(commandType))),
 			openai.UserMessage(fmt.Sprintf(defaultUserMessage, input, extraContext)),
 		}),
 		Model: openai.F(openai.ChatModelGPT4o),
@@ -61,7 +79,7 @@ func GetCommand(input string, dbtype DatabaseType, extraContext string) (ParsedR
 
 	response := strings.TrimSpace(chatCompletion.Choices[0].Message.Content)
 	fmt.Printf("AI response: %s\n", response)
-	parsedResponse, err := parseResponse(response)
+	parsedResponse, err := parseResponse(response, commandType)
 	if err != nil {
 		return ParsedResponse{}, err
 	}
@@ -70,7 +88,7 @@ func GetCommand(input string, dbtype DatabaseType, extraContext string) (ParsedR
 }
 
 // parseResponse processes the AI response to extract the command and suggested next steps.
-func parseResponse(response string) (ParsedResponse, error) {
+func parseResponse(response string, commandType CommandType) (ParsedResponse, error) {
 	parsed := ParsedResponse{}
 
 	// Split the response into lines for parsing
@@ -88,10 +106,16 @@ func parseResponse(response string) (ParsedResponse, error) {
 		}
 	}
 
-	fmt.Printf("Parsed command: %s\n", parsed.Command)
-	parsed.Command = cleanSQLQuery(parsed.Command)
-	if !isValidSQLQuery(parsed.Command) && !isValidMongoQuery(parsed.Command) {
-		return ParsedResponse{}, fmt.Errorf("invalid query: %s", parsed.Command)
+	// Validate the extracted command
+	if commandType == KubernetesCommand && !strings.HasPrefix(parsed.Command, "kubectl") {
+		return ParsedResponse{}, fmt.Errorf("Invalid Kubernetes command: %s", parsed.Command)
+	}
+	if commandType == RDBMSQuery {
+		fmt.Println(parsed.Command)
+		parsed.Command = cleanSQLQuery(parsed.Command)
+		if !isValidSQLQuery(parsed.Command) {
+			return ParsedResponse{}, fmt.Errorf("Invalid SQL query: %s", parsed.Command)
+		}
 	}
 
 	return parsed, nil
@@ -125,17 +149,6 @@ func isValidSQLQuery(query string) bool {
 	validPrefixes := []string{"SELECT", "INSERT", "UPDATE", "DELETE"}
 	for _, prefix := range validPrefixes {
 		if strings.HasPrefix(strings.ToUpper(query), prefix) {
-			return true
-		}
-	}
-	return false
-}
-
-// isValidMongoQuery checks if the query starts with a valid MongoDB command.
-func isValidMongoQuery(query string) bool {
-	validPrefixes := []string{"db.", "mongo."}
-	for _, prefix := range validPrefixes {
-		if strings.HasPrefix(query, prefix) {
 			return true
 		}
 	}

@@ -1,7 +1,6 @@
-package connection
+package azure
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,67 +8,75 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 	"github.com/peterh/liner"
 
-	config "github.com/prompt-ops/cli/cmd/config"
+	"github.com/prompt-ops/cli/pkg/ai"
+	config "github.com/prompt-ops/cli/pkg/config"
 )
 
-// handleCloudConnection handles the creation of a cloud connection
-func handleCloudConnection(name string) {
-	reader := bufio.NewReader(os.Stdin)
-	color.Cyan("Select cloud provider (currently only Azure is supported): ")
-	provider, _ := reader.ReadString('\n')
-	provider = strings.TrimSpace(strings.ToLower(provider))
+type AzureConnection struct {
+	Name string
+}
 
-	switch provider {
-	case "azure":
-		handleAzureConnection(name)
-	default:
-		color.Red("Unsupported cloud provider: %s", provider)
+func NewAzureConnection(name string) *AzureConnection {
+	return &AzureConnection{
+		Name: name,
 	}
 }
 
-// handleAzureConnection handles the creation of an Azure connection
-func handleAzureConnection(name string) {
+func (a *AzureConnection) CreateConnection(name string) error {
 	// Check if the user is logged in to Azure
-	if !isAzureLoggedIn() {
-		color.Red("Azure CLI is not logged in. Please run `az login` before creating an Azure connection.")
-		return
+	err := a.CheckAuthentication()
+	if err != nil {
+		color.Red("Azure authentication error: %v", err)
+		return err
 	}
 
 	// Save the connection details
 	conn := config.Connection{
-		Type: "azure",
-		Name: name,
+		Type:    a.Type(),
+		SubType: a.SubType(),
+		Name:    name,
 	}
 	if err := config.SaveConnection(conn); err != nil {
 		color.Red("Error saving connection: %v", err)
-		return
+		return err
 	}
 
 	color.Green("Azure connection '%s' created successfully.", name)
 
+	return nil
+}
+
+func (a *AzureConnection) CheckAuthentication() error {
+	cmd := exec.Command("az", "account", "show")
+	return cmd.Run()
+}
+
+func (a *AzureConnection) PrintInitialContext() error {
 	// Optionally, fetch and display Azure resources
 	resourceGroups, err := listAzureResourceGroups()
 	if err != nil {
 		color.Red("Error fetching Azure resource groups: %v", err)
-		return
+		return err
 	}
 
-	if len(resourceGroups) > 0 {
-		color.Green("Azure Resource Groups:")
-		for _, rg := range resourceGroups {
-			color.Yellow("- " + rg)
-		}
-	} else {
-		color.Yellow("No Azure Resource Groups found.")
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Resource Groups"})
+	for _, resourceGroup := range resourceGroups {
+		table.Append([]string{
+			resourceGroup,
+		})
 	}
+	table.Render()
 
-	color.Cyan("Starting **pops** interactive shell. Type your command, or type 'exit' to quit.")
+	return nil
+}
 
+func (a *AzureConnection) MainLoop() error {
 	line := liner.NewLiner()
 	defer line.Close()
-
 	line.SetCtrlCAborts(true)
 
 	historyFile := filepath.Join(os.TempDir(), ".pops_history")
@@ -79,7 +86,7 @@ func handleAzureConnection(name string) {
 	}
 
 	for {
-		currentContext := "Azure"
+		currentContext := a.SubType()
 		prompt := fmt.Sprintf("[%s] > ", currentContext)
 		input, err := line.Prompt(prompt)
 		if err == liner.ErrPromptAborted {
@@ -102,14 +109,14 @@ func handleAzureConnection(name string) {
 			break
 		}
 
-		parsedResponse, err := getCommand(input, CloudCommand, "")
+		parsedResponse, err := ai.GetCommand(input, a.CommandType(), "")
 		if err != nil {
 			color.Red("Error: %s", err)
 			continue
 		}
 
 		if parsedResponse.Command == "" {
-			color.Red("Sorry, I didn't understand that command.")
+			color.Red("Sorry, I didn't understand that prompt.")
 			continue
 		}
 
@@ -148,13 +155,20 @@ func handleAzureConnection(name string) {
 		line.WriteHistory(f)
 		f.Close()
 	}
+
+	return nil
 }
 
-// isAzureLoggedIn checks if the user is logged in to Azure CLI
-func isAzureLoggedIn() bool {
-	cmd := exec.Command("az", "account", "show")
-	err := cmd.Run()
-	return err == nil
+func (a *AzureConnection) Type() string {
+	return "cloud"
+}
+
+func (a *AzureConnection) SubType() string {
+	return "azure"
+}
+
+func (a *AzureConnection) CommandType() string {
+	return "Azure CLI `az` command"
 }
 
 // listAzureResourceGroups retrieves a list of Azure resource groups

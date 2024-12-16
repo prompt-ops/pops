@@ -12,7 +12,7 @@ import (
 	_ "github.com/lib/pq"              // Import the PostgreSQL driver
 	"github.com/peterh/liner"
 
-	config "github.com/prompt-ops/cli/cmd/config"
+	config "github.com/prompt-ops/cli/pkg/config"
 )
 
 func HandleDatabaseConnection(name string) {
@@ -139,7 +139,7 @@ func HandleDatabaseConnection(name string) {
 		}
 
 		// Generate the SQL query using OpenAI
-		parsedResponse, err := getCommand(input, conn.GetType(), dbContext)
+		parsedResponse, err := GetCommand(input, conn.GetType(), dbContext)
 		if err != nil {
 			color.Red("Error generating SQL query: %s", err)
 			continue
