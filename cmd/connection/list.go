@@ -5,9 +5,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	config "github.com/prompt-ops/cli/config"
 	"github.com/spf13/cobra"
-
-	config "github.com/prompt-ops/cli/pkg/config"
 )
 
 func newListCmd() *cobra.Command {
@@ -16,7 +15,7 @@ func newListCmd() *cobra.Command {
 		Short: "List all connections",
 		Long:  "List all connections that have been set up.",
 		Run: func(cmd *cobra.Command, args []string) {
-			connections, err := config.ListConnections()
+			connections, err := config.GetAllConnections()
 			if err != nil {
 				color.Red("Error listing connections: %v", err)
 				return

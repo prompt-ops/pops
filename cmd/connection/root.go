@@ -3,7 +3,6 @@ package connection
 import (
 	"os"
 
-	"github.com/prompt-ops/cli/cmd/connection/cloud"
 	"github.com/spf13/cobra"
 )
 
@@ -23,15 +22,5 @@ func Execute() {
 }
 
 func init() {
-	// Add connection commands
-	// Create a new connection command
-	ConnectionRootCmd.AddCommand(newCreateCmd())
-	// List all connections command
-	ConnectionRootCmd.AddCommand(newListCmd())
-	// Delete a connection or all connections command
-	ConnectionRootCmd.AddCommand(newDeleteCmd())
-	// List all available connection types command
-	ConnectionRootCmd.AddCommand(newListTypesCmd())
-	// Add Cloud commands
-	ConnectionRootCmd.AddCommand(cloud.CloudRootCmd)
+	// ConnectionRootCmd.AddCommand(cloud.CloudRootCmd)
 }

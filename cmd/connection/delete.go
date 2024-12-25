@@ -2,9 +2,8 @@ package connection
 
 import (
 	"github.com/fatih/color"
+	config "github.com/prompt-ops/cli/config"
 	"github.com/spf13/cobra"
-
-	config "github.com/prompt-ops/cli/pkg/config"
 )
 
 func newDeleteCmd() *cobra.Command {

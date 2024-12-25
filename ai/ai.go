@@ -21,6 +21,21 @@ var (
 	Suggested next steps:
 	1. Start a specific VM.
 	2. Stop a specific VM.
+
+	Command: kubectl get pods
+	Suggested next steps:
+	1. Describe one of the pods.
+	2. Delete a specific pod.
+
+	Command: aws ec2 describe-instances
+	Suggested next steps:
+	1. Start a specific instance.
+	2. Stop a specific instance.
+
+	Command: SELECT * FROM table_name;
+	Suggested next steps:
+	1. Filter the results based on a specific condition.
+	2. Join this table with another table.
 	
 	Do not include any Markdown-type formatting. Only provide plain text.`
 

@@ -11,8 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // Import the MySQL driver
 	_ "github.com/lib/pq"              // Import the PostgreSQL driver
 	"github.com/peterh/liner"
-
-	config "github.com/prompt-ops/cli/pkg/config"
+	config "github.com/prompt-ops/cli/config"
 )
 
 func HandleDatabaseConnection(name string) {

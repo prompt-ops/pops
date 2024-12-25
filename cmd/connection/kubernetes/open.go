@@ -1,10 +1,9 @@
-// cmd/connection/cloud/open.go
-package cloud
+package kubernetes
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	ui "github.com/prompt-ops/cli/ui"
-	cloudui "github.com/prompt-ops/cli/ui/cloud"
+	"github.com/prompt-ops/cli/ui"
+	k8sui "github.com/prompt-ops/cli/ui/kubernetes"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +13,7 @@ type openModel struct {
 
 func initialOpenModel() *openModel {
 	return &openModel{
-		current: cloudui.NewCloudOpenModel(),
+		current: k8sui.NewKubernetesOpenModel(),
 	}
 }
 
@@ -37,10 +36,10 @@ func (m *openModel) View() string {
 	return m.current.View()
 }
 
-func NewCloudOpenCommand() *cobra.Command {
+func NewKubernetesOpenCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "open",
-		Short: "Open an existing cloud connection.",
+		Short: "Create a new Kubernetes connection.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p := tea.NewProgram(initialOpenModel())
 			if _, err := p.Run(); err != nil {
