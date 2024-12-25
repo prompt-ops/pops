@@ -1,4 +1,4 @@
-module github.com/prompt-ops/cli
+module github.com/prompt-ops/pops
 
 go 1.23.2
 

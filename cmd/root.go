@@ -2,7 +2,7 @@
 package cmd
 
 import (
-	"github.com/prompt-ops/cli/cmd/connection"
+	"github.com/prompt-ops/pops/cmd/connection"
 	"github.com/spf13/cobra"
 )
 

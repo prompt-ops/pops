@@ -2,8 +2,8 @@ package kubernetes
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/prompt-ops/cli/ui"
-	k8sui "github.com/prompt-ops/cli/ui/kubernetes"
+	"github.com/prompt-ops/pops/ui"
+	k8sui "github.com/prompt-ops/pops/ui/kubernetes"
 	"github.com/spf13/cobra"
 )
 

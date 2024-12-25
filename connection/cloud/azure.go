@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/prompt-ops/cli/ai"
-	config "github.com/prompt-ops/cli/config"
+	"github.com/prompt-ops/pops/ai"
+	config "github.com/prompt-ops/pops/config"
 )
 
 type AzureConnection struct {

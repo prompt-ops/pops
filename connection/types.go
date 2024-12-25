@@ -3,9 +3,9 @@ package connection
 import (
 	"fmt"
 
-	config "github.com/prompt-ops/cli/config"
-	cloud "github.com/prompt-ops/cli/connection/cloud"
-	k8s "github.com/prompt-ops/cli/connection/kubernetes"
+	config "github.com/prompt-ops/pops/config"
+	cloud "github.com/prompt-ops/pops/connection/cloud"
+	k8s "github.com/prompt-ops/pops/connection/kubernetes"
 )
 
 // PromptOpsConnection interface definition

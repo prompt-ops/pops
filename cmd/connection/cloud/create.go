@@ -2,8 +2,8 @@ package cloud
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/prompt-ops/cli/ui"
-	cloudui "github.com/prompt-ops/cli/ui/cloud"
+	"github.com/prompt-ops/pops/ui"
+	cloudui "github.com/prompt-ops/pops/ui/cloud"
 	"github.com/spf13/cobra"
 )
 

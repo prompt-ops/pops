@@ -2,7 +2,7 @@ package connection
 
 import (
 	"github.com/fatih/color"
-	config "github.com/prompt-ops/cli/config"
+	config "github.com/prompt-ops/pops/config"
 	"github.com/spf13/cobra"
 )
 

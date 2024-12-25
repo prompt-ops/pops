@@ -6,7 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/prompt-ops/cli/cmd/connection/db"
+	"github.com/prompt-ops/pops/cmd/connection/db"
 )
 
 func newCreateCmd() *cobra.Command {

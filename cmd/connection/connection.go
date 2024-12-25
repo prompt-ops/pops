@@ -1,8 +1,8 @@
 package connection
 
 import (
-	"github.com/prompt-ops/cli/cmd/connection/cloud"
-	"github.com/prompt-ops/cli/cmd/connection/kubernetes"
+	"github.com/prompt-ops/pops/cmd/connection/cloud"
+	"github.com/prompt-ops/pops/cmd/connection/kubernetes"
 	"github.com/spf13/cobra"
 )
 

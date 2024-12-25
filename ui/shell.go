@@ -12,8 +12,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
-	config "github.com/prompt-ops/cli/config"
-	connection "github.com/prompt-ops/cli/connection"
+	config "github.com/prompt-ops/pops/config"
+	connection "github.com/prompt-ops/pops/connection"
 )
 
 const (

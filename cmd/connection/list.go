@@ -5,7 +5,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
-	config "github.com/prompt-ops/cli/config"
+	config "github.com/prompt-ops/pops/config"
 	"github.com/spf13/cobra"
 )
 

@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	config "github.com/prompt-ops/cli/config"
-	"github.com/prompt-ops/cli/ui"
+	config "github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/ui"
 )
 
 // Styles

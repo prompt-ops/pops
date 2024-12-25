@@ -5,8 +5,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	config "github.com/prompt-ops/cli/config"
-	"github.com/prompt-ops/cli/ui"
+	config "github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/ui"
 )
 
 const (
