@@ -18,6 +18,11 @@ func initialOpenModel() *openModel {
 	}
 }
 
+// NewOpenModel returns a new openModel
+func NewOpenModel() *openModel {
+	return initialOpenModel()
+}
+
 func (m *openModel) Init() tea.Cmd {
 	return m.current.Init()
 }
@@ -37,7 +42,7 @@ func (m *openModel) View() string {
 	return m.current.View()
 }
 
-func NewCloudOpenCommand() *cobra.Command {
+func newOpenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "open",
 		Short: "Open an existing cloud connection.",

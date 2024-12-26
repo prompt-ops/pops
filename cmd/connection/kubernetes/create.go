@@ -17,6 +17,11 @@ func initialCreateModel() *createModel {
 	}
 }
 
+// NewCreateModel returns a new createModel
+func NewCreateModel() *createModel {
+	return initialCreateModel()
+}
+
 func (m *createModel) Init() tea.Cmd {
 	return m.current.Init()
 }
@@ -36,7 +41,7 @@ func (m *createModel) View() string {
 	return m.current.View()
 }
 
-func NewKubernetesCreateCommand() *cobra.Command {
+func newCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new Kubernetes connection.",

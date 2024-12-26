@@ -117,6 +117,24 @@ func writeConnections() error {
 	return nil
 }
 
+// GetConnectionByName retrieves a connection by its name.
+// If the connection does not exist, it returns an error.
+func GetConnectionByName(connectionName string) (Connection, error) {
+	if connections == nil {
+		if err := loadConnections(); err != nil {
+			return Connection{}, err
+		}
+	}
+
+	for _, conn := range connections {
+		if strings.EqualFold(conn.Name, connectionName) {
+			return conn, nil
+		}
+	}
+
+	return Connection{}, fmt.Errorf("connection with name '%s' does not exist", connectionName)
+}
+
 // GetAllConnections retrieves all stored connections.
 func GetAllConnections() ([]Connection, error) {
 	if connections == nil {
@@ -140,10 +158,6 @@ func GetConnectionsByType(connectionType string) ([]Connection, error) {
 		if strings.EqualFold(conn.Type, connectionType) {
 			filteredConnections = append(filteredConnections, conn)
 		}
-	}
-
-	if len(filteredConnections) == 0 {
-		return nil, fmt.Errorf("no connections found for type '%s'", connectionType)
 	}
 
 	return filteredConnections, nil

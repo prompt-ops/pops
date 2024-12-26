@@ -10,8 +10,20 @@ func NewKubernetesCommand() *cobra.Command {
 		Short: "Manage kubernetes connections.",
 	}
 
-	cmd.AddCommand(NewKubernetesCreateCommand())
-	cmd.AddCommand(NewKubernetesOpenCommand())
+	// `pops connection kubernetes create *` commands
+	cmd.AddCommand(newCreateCmd())
+
+	// `pops connection kubernetes open *` commands
+	cmd.AddCommand(newOpenCmd())
+
+	// `pops connection kubernetes list` command
+	cmd.AddCommand(newListCmd())
+
+	// `pops connection kubernetes delete *` commands
+	cmd.AddCommand(newDeleteCmd())
+
+	// `pops connection kubernetes types` command
+	cmd.AddCommand(newTypesCmd())
 
 	return cmd
 }

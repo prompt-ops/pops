@@ -1,26 +1,25 @@
-package connection
+package cloud
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
-	config "github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/connection/cloud"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
 
-func newListCmd() *cobra.Command {
+func newTypesCmd() *cobra.Command {
 	listCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List all connections",
-		Long:  "List all connections that have been set up.",
+		Use:   "types",
+		Short: "List all available cloud connection types",
+		Long:  "List all available cloud connection types",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := runListConnections(); err != nil {
-				color.Red("Error listing connections: %v", err)
+			if err := runListAvaibleCloudTypes(); err != nil {
+				color.Red("Error listing cloud connections: %v", err)
 				os.Exit(1)
 			}
 		},
@@ -29,22 +28,17 @@ func newListCmd() *cobra.Command {
 	return listCmd
 }
 
-// runListConnections lists all connections
-func runListConnections() error {
-	connections, err := config.GetAllConnections()
-	if err != nil {
-		return fmt.Errorf("getting connections: %w", err)
-	}
+// runListAvaibleCloudTypes lists all available cloud connection types
+func runListAvaibleCloudTypes() error {
+	connectionTypes := cloud.AvailableConnectionTypes()
 
-	items := make([]table.Row, len(connections))
-	for i, conn := range connections {
-		items[i] = table.Row{conn.Name, conn.Type, conn.SubType}
+	items := make([]table.Row, len(connectionTypes))
+	for i, connectionType := range connectionTypes {
+		items[i] = table.Row{connectionType}
 	}
 
 	columns := []table.Column{
-		{Title: "Name", Width: 25},
-		{Title: "Type", Width: 15},
-		{Title: "Subtype", Width: 20},
+		{Title: "Available Types", Width: 25},
 	}
 
 	t := table.New(

@@ -10,9 +10,20 @@ func NewCloudCommand() *cobra.Command {
 		Short: "Manage cloud connections.",
 	}
 
-	// Add subcommands
-	cmd.AddCommand(NewCloudCreateCommand())
-	cmd.AddCommand(NewCloudOpenCommand())
+	// `pops connection cloud create *` commands
+	cmd.AddCommand(newCreateCmd())
+
+	// `pops connection cloud open *` commands
+	cmd.AddCommand(newOpenCmd())
+
+	// `pops connection cloud list` command
+	cmd.AddCommand(newListCmd())
+
+	// `pops connection cloud delete *` commands
+	cmd.AddCommand(newDeleteCmd())
+
+	// `pops connection cloud types` command
+	cmd.AddCommand(newTypesCmd())
 
 	return cmd
 }

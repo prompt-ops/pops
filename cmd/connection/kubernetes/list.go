@@ -1,4 +1,4 @@
-package connection
+package kubernetes
 
 import (
 	"fmt"
@@ -16,11 +16,11 @@ import (
 func newListCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all connections",
-		Long:  "List all connections that have been set up.",
+		Short: "List all kubernetes connections",
+		Long:  "List all kubernetes connections that have been set up.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := runListConnections(); err != nil {
-				color.Red("Error listing connections: %v", err)
+				color.Red("Error listing kubernetes connections: %v", err)
 				os.Exit(1)
 			}
 		},
@@ -31,9 +31,9 @@ func newListCmd() *cobra.Command {
 
 // runListConnections lists all connections
 func runListConnections() error {
-	connections, err := config.GetAllConnections()
+	connections, err := config.GetConnectionsByType("kubernetes")
 	if err != nil {
-		return fmt.Errorf("getting connections: %w", err)
+		return fmt.Errorf("getting kubernetes connections: %w", err)
 	}
 
 	items := make([]table.Row, len(connections))

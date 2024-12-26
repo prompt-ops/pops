@@ -15,5 +15,23 @@ func NewConnectionCommand() *cobra.Command {
 	cmd.AddCommand(cloud.NewCloudCommand())
 	cmd.AddCommand(kubernetes.NewKubernetesCommand())
 
+	// `pops connection list` command
+	cmd.AddCommand(newListCmd())
+
+	// `pops connection delete *` command
+	// `pops connection delete` is an interactive command
+	// `pops connection delete my-connection` deletes a connection by name
+	// `pops connection delete --all` deletes all connections
+	cmd.AddCommand(newDeleteCmd())
+
+	// `pops connection open` command
+	cmd.AddCommand(newOpenCmd())
+
+	// `pops connection create` is an interactive command
+	cmd.AddCommand(newCreateCmd())
+
+	// `pops connection types` command
+	cmd.AddCommand(newTypesCmd())
+
 	return cmd
 }

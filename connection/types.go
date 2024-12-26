@@ -36,3 +36,8 @@ func GetConnection(conn config.Connection) (PromptOpsConnection, error) {
 		return nil, fmt.Errorf("unsupported connection type: %s", conn.SubType)
 	}
 }
+
+// AvailableConnectionTypes returns a list of available connection types
+func AvailableConnectionTypes() []string {
+	return []string{"cloud", "kubernetes"}
+}
