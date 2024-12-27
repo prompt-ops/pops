@@ -159,6 +159,16 @@ func (k *KubernetesConnection) GetCommand(prompt string) (string, error) {
 	return cmd.Command, nil
 }
 
+func (k *KubernetesConnection) ExecuteCommand(command string) ([]byte, error) {
+	cmd := exec.Command(command)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute command: %v", err)
+	}
+
+	return output, nil
+}
+
 // Namespace represents a Kubernetes namespace
 type Namespace struct {
 	Name string `json:"name"`

@@ -135,6 +135,16 @@ func (a *AzureConnection) GetCommand(prompt string) (string, error) {
 	return cmd.Command, nil
 }
 
+func (a *AzureConnection) ExecuteCommand(command string) ([]byte, error) {
+	cmd := exec.Command(command)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute command: %v", err)
+	}
+
+	return output, nil
+}
+
 // ResourceGroup represents an Azure resource group
 type ResourceGroup struct {
 	Name string `json:"name"`

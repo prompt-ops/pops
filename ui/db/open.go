@@ -1,4 +1,4 @@
-package cloud
+package db
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	config "github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/connection"
 	"github.com/prompt-ops/pops/ui"
 )
 
-// Styles
 var (
 	selectedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
 	unselectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
@@ -23,25 +23,20 @@ const (
 	stepOpenDone
 )
 
-// Message types
 type (
-	// Sent when our spinner is done
 	doneSpinnerMsg struct{}
 )
 
-// model defines the state of the UI
 type model struct {
 	currentStep step
 	cursor      int
 	connections []config.Connection
 	selected    config.Connection
 	err         error
-
-	// Spinner for transitions
-	spinner spinner.Model
+	spinner     spinner.Model
 }
 
-// NewOpenModel initializes the open model for Cloud connections
+// NewOpenModel returns a new database open model
 func NewOpenModel() model {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
@@ -52,7 +47,6 @@ func NewOpenModel() model {
 	}
 }
 
-// Init initializes the model
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
@@ -60,23 +54,23 @@ func (m model) Init() tea.Cmd {
 	)
 }
 
-// loadConnectionsCmd fetches existing cloud connections
+// loadConnectionsCmd fetches existing database connections
 func (m model) loadConnectionsCmd() tea.Cmd {
 	return func() tea.Msg {
-		cloudConnections, err := config.GetConnectionsByType("cloud")
+		databaseConnections, err := config.GetConnectionsByType(connection.Database)
 		if err != nil {
 			return err
 		}
-		if len(cloudConnections) == 0 {
-			return fmt.Errorf("no cloud connections found")
+		if len(databaseConnections) == 0 {
+			return fmt.Errorf("no database connections found")
 		}
 		return connectionsMsg{
-			connections: cloudConnections,
+			connections: databaseConnections,
 		}
 	}
 }
 
-// connectionsMsg holds the list of cloud connections
+// connectionsMsg holds the list of database connections
 type connectionsMsg struct {
 	connections []config.Connection
 }
@@ -141,7 +135,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Always update the spinner
 	m.spinner, cmd = m.spinner.Update(msg)
 	return m, cmd
 }
@@ -149,8 +142,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // transitionCmd sends the TransitionToShellMsg after spinner
 func transitionCmd(conn config.Connection) tea.Cmd {
 	return func() tea.Msg {
-		// Normally, you might perform additional actions here
-		return ui.TransitionToShellMsg{Connection: conn}
+		return ui.TransitionToShellMsg{
+			Connection: conn,
+		}
 	}
 }
 
@@ -158,7 +152,7 @@ func transitionCmd(conn config.Connection) tea.Cmd {
 func (m model) View() string {
 	switch m.currentStep {
 	case stepSelectConnection:
-		s := titleStyle.Render("Select a Cloud Connection (↑/↓, Enter to open):")
+		s := titleStyle.Render("Select a database connection (↑/↓, Enter to open):")
 		s += "\n\n"
 		for i, conn := range m.connections {
 			cursor := "  "
@@ -184,7 +178,7 @@ func (m model) View() string {
 		}
 		return lipgloss.JoinHorizontal(lipgloss.Left,
 			"✅ Connection opened!",
-			"\n\nPress 'Enter' or 'q'/'esc' to exit.",
+			"\n\nPress 'Enter' to start the shell or 'q'/'esc' to exit.",
 		)
 	default:
 		return ""

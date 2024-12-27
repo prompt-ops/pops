@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewKubernetesCommand() *cobra.Command {
+func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "kubernetes",
 		Short: "Manage kubernetes connections.",

@@ -1,9 +1,9 @@
-package kubernetes
+package db
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/prompt-ops/pops/ui"
-	k8sui "github.com/prompt-ops/pops/ui/kubernetes"
+	ui "github.com/prompt-ops/pops/ui"
+	dbui "github.com/prompt-ops/pops/ui/db"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ type openModel struct {
 
 func initialOpenModel() *openModel {
 	return &openModel{
-		current: k8sui.NewOpenModel(),
+		current: dbui.NewOpenModel(),
 	}
 }
 
@@ -44,7 +44,7 @@ func (m *openModel) View() string {
 func newOpenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "open",
-		Short: "Create a new Kubernetes connection.",
+		Short: "Open an existing database connection.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p := tea.NewProgram(initialOpenModel())
 			if _, err := p.Run(); err != nil {

@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/prompt-ops/pops/cmd/connection/cloud"
+	"github.com/prompt-ops/pops/cmd/connection/db"
 	"github.com/prompt-ops/pops/cmd/connection/kubernetes"
 )
 
@@ -15,7 +16,9 @@ func GetCreateModel(connectionType string) (tea.Model, error) {
 		return cloud.NewCreateModel(), nil
 	case "kubernetes":
 		return kubernetes.NewCreateModel(), nil
+	case "database":
+		return db.NewCreateModel(), nil
 	default:
-		return nil, fmt.Errorf("unsupported connection type: %s", connectionType)
+		return nil, fmt.Errorf("[GetCreateModel] unsupported connection type: %s", connectionType)
 	}
 }

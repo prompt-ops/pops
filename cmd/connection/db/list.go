@@ -1,24 +1,26 @@
 package db
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
-	"github.com/prompt-ops/pops/connection/db"
+	config "github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/connection"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
 
-func newTypesCmd() *cobra.Command {
+func newListCmd() *cobra.Command {
 	listCmd := &cobra.Command{
-		Use:   "types",
-		Short: "List all available database connection types",
-		Long:  "List all available database connection types",
+		Use:   "list",
+		Short: "List all database connections",
+		Long:  "List all database connections that have been set up.",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := runListAvaibleDatabaseTypes(); err != nil {
+			if err := runListConnections(); err != nil {
 				color.Red("Error listing database connections: %v", err)
 				os.Exit(1)
 			}
@@ -28,17 +30,22 @@ func newTypesCmd() *cobra.Command {
 	return listCmd
 }
 
-// runListAvaibledatabaseTypes lists all available database connection types
-func runListAvaibleDatabaseTypes() error {
-	connectionTypes := db.AvailableConnectionTypes()
+// runListConnections lists all connections
+func runListConnections() error {
+	connections, err := config.GetConnectionsByType(connection.Database)
+	if err != nil {
+		return fmt.Errorf("getting database connections: %w", err)
+	}
 
-	items := make([]table.Row, len(connectionTypes))
-	for i, connectionType := range connectionTypes {
-		items[i] = table.Row{connectionType}
+	items := make([]table.Row, len(connections))
+	for i, conn := range connections {
+		items[i] = table.Row{conn.Name, conn.Type, conn.SubType}
 	}
 
 	columns := []table.Column{
-		{Title: "Available Types", Width: 25},
+		{Title: "Name", Width: 25},
+		{Title: "Type", Width: 15},
+		{Title: "Driver", Width: 20},
 	}
 
 	t := table.New(

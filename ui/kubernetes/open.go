@@ -33,8 +33,8 @@ type openModel struct {
 	spinner spinner.Model
 }
 
-// NewKubernetesOpenModel initializes the open openModel for Kubernetes connections
-func NewKubernetesOpenModel() *openModel {
+// NewOpenModel initializes the open openModel for Kubernetes connections
+func NewOpenModel() *openModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 

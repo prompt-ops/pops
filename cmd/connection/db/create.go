@@ -1,9 +1,9 @@
-package cloud
+package db
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/prompt-ops/pops/ui"
-	cloudui "github.com/prompt-ops/pops/ui/cloud"
+	"github.com/prompt-ops/pops/ui/db"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ type createModel struct {
 
 func initialCreateModel() *createModel {
 	return &createModel{
-		current: cloudui.NewCreateModel(),
+		current: db.NewCreateModel(),
 	}
 }
 

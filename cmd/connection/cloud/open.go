@@ -14,7 +14,7 @@ type openModel struct {
 
 func initialOpenModel() *openModel {
 	return &openModel{
-		current: cloudui.NewCloudOpenModel(),
+		current: cloudui.NewOpenModel(),
 	}
 }
 

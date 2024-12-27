@@ -51,7 +51,7 @@ type createModel struct {
 	connection config.Connection
 }
 
-func NewCloudCreateModel() *createModel {
+func NewCreateModel() *createModel {
 	ti := textinput.New()
 	ti.Placeholder = "Enter connection name..."
 	ti.CharLimit = 256

@@ -2,6 +2,7 @@ package connection
 
 import (
 	"github.com/prompt-ops/pops/cmd/connection/cloud"
+	"github.com/prompt-ops/pops/cmd/connection/db"
 	"github.com/prompt-ops/pops/cmd/connection/kubernetes"
 	"github.com/spf13/cobra"
 )
@@ -12,8 +13,9 @@ func NewConnectionCommand() *cobra.Command {
 		Short: "Manage connections for various providers.",
 	}
 
-	cmd.AddCommand(cloud.NewCloudCommand())
-	cmd.AddCommand(kubernetes.NewKubernetesCommand())
+	cmd.AddCommand(cloud.NewRootCommand())
+	cmd.AddCommand(kubernetes.NewRootCommand())
+	cmd.AddCommand(db.NewRootCommand())
 
 	// `pops connection list` command
 	cmd.AddCommand(newListCmd())

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -53,7 +52,7 @@ type shellModel struct {
 	history        []historyEntry
 	historyIndex   int
 	connection     config.Connection
-	popsConnection connection.PromptOpsConnection
+	popsConnection connection.ConnectionInterface
 	spinner        spinner.Model
 	checkPassed    bool
 }
@@ -219,6 +218,19 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stepDone:
 		if m.err != nil {
+			switch msg := msg.(type) {
+			case tea.KeyMsg:
+				switch msg.String() {
+				case "q", "esc", "ctrl+c":
+					return m, tea.Quit
+				case "enter":
+					// Reset the model to start a new prompt
+					m.err = nil
+					m.step = stepEnterPrompt
+					m.promptInput.Reset()
+					return m, textinput.Blink
+				}
+			}
 			return m, nil
 		}
 
@@ -259,7 +271,7 @@ func (m shellModel) View() string {
 		)
 	case stepShowContext:
 		// This step is now handled in the Update method
-		return historyView + outputStyle.Render("📄 Displaying Azure Context...\n\n"+m.output+"\n")
+		return historyView + outputStyle.Render("📄 Displaying Database Context...\n\n"+m.output+"\n")
 
 	case stepEnterPrompt:
 		return historyView + fmt.Sprintf(
@@ -325,9 +337,9 @@ func (m shellModel) generateCommand(prompt string) tea.Cmd {
 
 func (m shellModel) runCommand(command string) tea.Cmd {
 	return func() tea.Msg {
-		out, err := exec.Command("sh", "-c", command).Output()
+		out, err := m.popsConnection.ExecuteCommand(command)
 		if err != nil {
-			return outputMsg{output: fmt.Sprintf("Error: %v", err)}
+			return errMsg{err}
 		}
 
 		tableStr := formatAsTable(out)

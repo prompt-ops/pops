@@ -56,8 +56,8 @@ type createModel struct {
 	connection config.Connection
 }
 
-// NewKubernetesCreateModel initializes the createModel for Kubernetes
-func NewKubernetesCreateModel() *createModel {
+// NewCreateModel initializes the createModel for Kubernetes
+func NewCreateModel() *createModel {
 	ti := textinput.New()
 	ti.Placeholder = "Enter connection name..."
 	ti.CharLimit = 256

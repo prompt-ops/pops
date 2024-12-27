@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCloudCommand() *cobra.Command {
+func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cloud",
 		Short: "Manage cloud connections.",

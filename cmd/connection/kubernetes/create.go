@@ -13,7 +13,7 @@ type createModel struct {
 
 func initialCreateModel() *createModel {
 	return &createModel{
-		current: k8sui.NewKubernetesCreateModel(),
+		current: k8sui.NewCreateModel(),
 	}
 }
 
