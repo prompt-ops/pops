@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
 	"github.com/prompt-ops/pops/ui"
 )
@@ -26,11 +27,11 @@ const (
 	stepCreateDone
 )
 
-var providers = []string{"azure", "aws", "gcp"}
+var providers = common.AvailableCloudConnectionTypes
 
 type (
 	doneWaitingMsg struct {
-		Connection config.Connection
+		Connection common.Connection
 	}
 
 	errMsg struct {
@@ -41,14 +42,12 @@ type (
 type createModel struct {
 	currentStep step
 	cursor      int
-	provider    string
 	input       textinput.Model
 	err         error
+	spinner     spinner.Model
 
-	// Spinner for the 2-second wait
-	spinner spinner.Model
-
-	connection config.Connection
+	connection            common.Connection
+	selectedCloudProvider common.AvailableCloudConnectionType
 }
 
 func NewCreateModel() *createModel {
@@ -93,10 +92,10 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cursor++
 				}
 			case "enter":
-				m.provider = providers[m.cursor]
+				m.selectedCloudProvider = providers[m.cursor]
 				m.currentStep = stepEnterConnectionName
 				m.input.Focus()
-				m.err = nil // Clear any previous errors
+				m.err = nil
 				return m, nil
 			case "q", "esc", "ctrl+c":
 				return m, tea.Quit
@@ -121,20 +120,15 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.err = fmt.Errorf("connection name already exists")
 					return m, nil
 				}
-				connection := config.Connection{
-					Name:    name,
-					Type:    "cloud",
-					SubType: m.provider,
-				}
-				// Save the connection
+
+				connection := common.NewCloudConnection(name, m.selectedCloudProvider)
 				if err := config.SaveConnection(connection); err != nil {
 					m.err = err
 					return m, nil
 				}
-				// Move to spinner step
+
 				m.currentStep = stepCreateSpinner
-				// Start spinner and a 2-second timer
-				m.err = nil // Clear any previous errors
+				m.err = nil
 				return m, tea.Batch(
 					m.spinner.Tick,
 					waitTwoSecondsCmd(connection),
@@ -158,18 +152,12 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case doneWaitingMsg:
 			m.connection = msg.Connection
 			m.currentStep = stepCreateDone
-
-			// Clear any previous errors when moving to a new step
 			m.err = nil
-
 			return m, nil
 		case errMsg:
 			m.err = msg.err
 			m.currentStep = stepCreateDone
-
-			// Clear the connection as saving failed
-			m.connection = config.Connection{}
-
+			m.connection = common.Connection{}
 			return m, nil
 		case tea.KeyMsg:
 			switch msg.String() {
@@ -178,7 +166,6 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Update spinner
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 
@@ -190,9 +177,10 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "enter":
-				// Send TransitionToShellMsg with the created connection
 				return m, func() tea.Msg {
-					return ui.TransitionToShellMsg{Connection: m.connection}
+					return ui.TransitionToShellMsg{
+						Connection: m.connection,
+					}
 				}
 			case "q", "esc", "ctrl+c":
 				return m, tea.Quit
@@ -203,8 +191,7 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// A Tea command that sends doneWaitingMsg after two seconds
-func waitTwoSecondsCmd(conn config.Connection) tea.Cmd {
+func waitTwoSecondsCmd(conn common.Connection) tea.Cmd {
 	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return doneWaitingMsg{
 			Connection: conn,
@@ -222,10 +209,8 @@ func (m *createModel) View() string {
 			if i == m.cursor {
 				cursor = "→ "
 			}
-			// No extra spaces or newlines here
-			s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Render(p))
+			s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Render(p.Subtype))
 		}
-		// Again, just a single newline before the final line
 		s += "\nPress 'q' or 'esc' or Ctrl+C to quit."
 		return s
 

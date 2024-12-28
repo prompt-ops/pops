@@ -7,8 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
-	"github.com/prompt-ops/pops/connection"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
@@ -73,14 +73,14 @@ func deleteDatabaseConnection(name string) {
 
 // runInteractiveDelete runs the Bubble Tea program for interactive deletion
 func runInteractiveDelete() (string, error) {
-	connections, err := config.GetConnectionsByType(connection.Database)
+	connections, err := config.GetConnectionsByType(common.ConnectionTypeDatabase)
 	if err != nil {
 		return "", fmt.Errorf("getting connections: %w", err)
 	}
 
 	items := make([]table.Row, len(connections))
 	for i, conn := range connections {
-		items[i] = table.Row{conn.Name, conn.Type, conn.SubType}
+		items[i] = table.Row{conn.Name, conn.Type.GetMainType(), conn.Type.GetSubtype()}
 	}
 
 	columns := []table.Column{

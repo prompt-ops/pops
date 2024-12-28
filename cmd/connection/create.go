@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/prompt-ops/pops/cmd/connection/factory"
-	"github.com/prompt-ops/pops/connection"
+	"github.com/prompt-ops/pops/common"
 	"github.com/prompt-ops/pops/ui"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
@@ -51,11 +51,13 @@ type createModel struct {
 }
 
 func initialCreateModel() *createModel {
-	connectionTypes := connection.AvailableConnectionTypes()
+	connectionTypes := common.AvailableConnectionTypes()
 
 	items := make([]table.Row, len(connectionTypes))
 	for i, connectionType := range connectionTypes {
-		items[i] = table.Row{connectionType}
+		items[i] = table.Row{
+			connectionType,
+		}
 	}
 
 	columns := []table.Column{

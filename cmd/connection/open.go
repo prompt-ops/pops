@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
+	"github.com/prompt-ops/pops/common"
 	"github.com/prompt-ops/pops/config"
 	"github.com/prompt-ops/pops/ui"
 	commonui "github.com/prompt-ops/pops/ui/common"
@@ -66,7 +67,7 @@ func runInteractiveOpen() (string, error) {
 
 	items := make([]table.Row, len(connections))
 	for i, conn := range connections {
-		items[i] = table.Row{conn.Name, conn.Type, conn.SubType}
+		items[i] = table.Row{conn.Name, conn.Type.GetMainType(), conn.Type.GetSubtype()}
 	}
 
 	columns := []table.Column{
@@ -105,7 +106,7 @@ func runInteractiveOpen() (string, error) {
 }
 
 // openShellUI initializes and runs the shell UI with the selected connection
-func openShellUI(conn config.Connection) error {
+func openShellUI(conn common.Connection) error {
 	shell := ui.NewShellModel(conn)
 	p := tea.NewProgram(shell)
 	if _, err := p.Run(); err != nil {

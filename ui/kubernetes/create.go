@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
 	"github.com/prompt-ops/pops/ui"
 )
@@ -29,7 +30,7 @@ const (
 
 type (
 	doneWaitingMsg struct {
-		Connection config.Connection
+		Connection common.Connection
 	}
 
 	contextsMsg struct {
@@ -53,7 +54,7 @@ type createModel struct {
 	// Spinner for the 2-second wait
 	spinner spinner.Model
 
-	connection config.Connection
+	connection common.Connection
 }
 
 // NewCreateModel initializes the createModel for Kubernetes
@@ -93,7 +94,7 @@ func (m *createModel) loadContextsCmd() tea.Cmd {
 }
 
 // waitTwoSecondsCmd simulates a delay for saving the connection asynchronously
-func waitTwoSecondsCmd(conn config.Connection) tea.Cmd {
+func waitTwoSecondsCmd(conn common.Connection) tea.Cmd {
 	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return doneWaitingMsg{
 			Connection: conn,
@@ -166,23 +167,14 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.err = fmt.Errorf("connection name already exists")
 					return m, nil
 				}
-				connection := config.Connection{
-					Name:    name,
-					Type:    "kubernetes",
-					SubType: m.selectedCtx,
-				}
-				// Save the connection
+
+				connection := common.NewKubernetesConnection(name, m.selectedCtx)
 				if err := config.SaveConnection(connection); err != nil {
 					m.err = err
 					return m, nil
 				}
-				// Move to spinner step
 				m.currentStep = stepCreateSpinner
-				// Start spinner and a 2-second timer
-
-				// Clear any previous errors when moving to a new step
 				m.err = nil
-
 				return m, tea.Batch(
 					m.spinner.Tick,
 					waitTwoSecondsCmd(connection),
@@ -191,11 +183,9 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		case spinner.TickMsg:
-			// Ignore spinner messages in this step
 			return m, nil
 		}
 
-		// Update text input
 		m.input, cmd = m.input.Update(msg)
 		return m, cmd
 
@@ -204,22 +194,19 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case spinner.TickMsg:
 			m.spinner, cmd = m.spinner.Update(msg)
 			return m, cmd
+
 		case doneWaitingMsg:
 			m.connection = msg.Connection
 			m.currentStep = stepCreateDone
-
-			// Clear any previous errors when moving to a new step
 			m.err = nil
-
 			return m, nil
+
 		case errMsg:
 			m.err = msg.err
 			m.currentStep = stepCreateDone
-
-			// Clear the connection as saving failed
-			m.connection = config.Connection{}
-
+			m.connection = common.Connection{}
 			return m, nil
+
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "q", "esc", "ctrl+c":
@@ -227,7 +214,6 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Update spinner
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 
@@ -236,15 +222,15 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "enter":
-				// Send TransitionToShellMsg with the created connection
 				return m, func() tea.Msg {
-					return ui.TransitionToShellMsg{Connection: m.connection}
+					return ui.TransitionToShellMsg{
+						Connection: m.connection,
+					}
 				}
 			case "q", "esc", "ctrl+c":
 				return m, tea.Quit
 			}
 		case spinner.TickMsg:
-			// Ignore spinner messages in this step
 			return m, nil
 		}
 	}
@@ -252,7 +238,6 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// View renders the UI based on the current step
 func (m *createModel) View() string {
 	switch m.currentStep {
 	case stepSelectContext:

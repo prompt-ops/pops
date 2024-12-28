@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
 	"github.com/prompt-ops/pops/ui"
 )
@@ -25,8 +26,8 @@ type (
 type openModel struct {
 	currentStep step
 	cursor      int
-	connections []config.Connection
-	selected    config.Connection
+	connections []common.Connection
+	selected    common.Connection
 	err         error
 
 	// Spinner for transitions
@@ -55,7 +56,7 @@ func (m *openModel) Init() tea.Cmd {
 // loadConnectionsCmd fetches existing Kubernetes connections
 func (m *openModel) loadConnectionsCmd() tea.Cmd {
 	return func() tea.Msg {
-		k8sConnections, err := config.GetConnectionsByType("kubernetes")
+		k8sConnections, err := config.GetConnectionsByType(common.ConnectionTypeKubernetes)
 		if err != nil {
 			return err
 		}
@@ -70,7 +71,7 @@ func (m *openModel) loadConnectionsCmd() tea.Cmd {
 
 // connectionsMsg holds the list of Kubernetes connections
 type connectionsMsg struct {
-	connections []config.Connection
+	connections []common.Connection
 }
 
 // Update handles incoming messages and updates the openModel accordingly
@@ -139,15 +140,14 @@ func (m *openModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// transitionCmd sends the TransitionToShellMsg after spinner
-func transitionCmd(conn config.Connection) tea.Cmd {
+func transitionCmd(conn common.Connection) tea.Cmd {
 	return func() tea.Msg {
-		// You can add additional actions here if needed
-		return ui.TransitionToShellMsg{Connection: conn}
+		return ui.TransitionToShellMsg{
+			Connection: conn,
+		}
 	}
 }
 
-// View renders the UI based on the current step
 func (m *openModel) View() string {
 	switch m.currentStep {
 	case stepSelectConnection:

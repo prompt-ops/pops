@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/prompt-ops/pops/cmd/connection/cloud"
@@ -11,7 +12,7 @@ import (
 
 // GetCreateModel returns a new createModel based on the connection type
 func GetCreateModel(connectionType string) (tea.Model, error) {
-	switch connectionType {
+	switch strings.ToLower(connectionType) {
 	case "cloud":
 		return cloud.NewCreateModel(), nil
 	case "kubernetes":

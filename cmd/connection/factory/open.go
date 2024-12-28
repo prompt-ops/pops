@@ -2,17 +2,18 @@ package factory
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/prompt-ops/pops/cmd/connection/cloud"
 	"github.com/prompt-ops/pops/cmd/connection/db"
 	"github.com/prompt-ops/pops/cmd/connection/kubernetes"
-	"github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/common"
 )
 
 // GetOpenModel returns a new openModel based on the connection type
-func GetOpenModel(connection config.Connection) (tea.Model, error) {
-	switch connection.Type {
+func GetOpenModel(connection common.Connection) (tea.Model, error) {
+	switch strings.ToLower(connection.Type.GetMainType()) {
 	case "cloud":
 		return cloud.NewOpenModel(), nil
 	case "kubernetes":

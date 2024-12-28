@@ -1,41 +1,102 @@
-package kubernetes
+package common
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/prompt-ops/pops/ai"
-	config "github.com/prompt-ops/pops/config"
 )
 
-// KubernetesConnection manages the connection and context to a Kubernetes cluster
-type KubernetesConnection struct {
-	Connection  config.Connection
+var (
+	// AvailableDatabaseConnectionTypes is a list of available database connections.
+	AvailableKubernetesConnectionTypes = []AvailableKubernetesConnectionType{}
+)
+
+// AvailableKubernetesConnection is a helper struct to UI to list available kubernetes connection types.
+// Subtype will be shown in the UI.
+type AvailableKubernetesConnectionType struct {
+	Subtype string
+}
+
+type KubernetesConnectionType struct {
+	// MainType of the connection type.
+	// Example: "kubernetes".
+	MainType string `json:"mainType"`
+}
+
+func (k KubernetesConnectionType) GetMainType() string {
+	return ConnectionTypeKubernetes
+}
+
+func (k KubernetesConnectionType) GetSubtype() string {
+	return ""
+}
+
+type KubernetesConnectionDetails struct {
+	// SelectedContext is the selected context for the kubernetes connection.
+	SelectedContext string `json:"selectedContext"`
+}
+
+func (k KubernetesConnectionDetails) GetDriver() string {
+	return ""
+}
+
+func (k KubernetesConnectionDetails) GetSelectedContext() string {
+	return k.SelectedContext
+}
+
+// NewKubernetesConnection creates a new Kubernetes connection.
+func NewKubernetesConnection(name, context string) Connection {
+	return Connection{
+		Name: name,
+		Type: KubernetesConnectionType{
+			MainType: ConnectionTypeKubernetes,
+		},
+		Details: KubernetesConnectionDetails{
+			SelectedContext: context,
+		},
+	}
+}
+
+// GetKubernetesConnectionDetails retrieves the KubernetesConnectionDetails from a Connection.
+func GetKubernetesConnectionDetails(conn Connection) (KubernetesConnectionDetails, error) {
+	if conn.Type.GetMainType() != ConnectionTypeKubernetes {
+		return KubernetesConnectionDetails{}, fmt.Errorf("connection is not of type 'kubernetes'")
+	}
+	details, ok := conn.Details.(KubernetesConnectionDetails)
+	if !ok {
+		return KubernetesConnectionDetails{}, fmt.Errorf("invalid connection details for 'kubernetes'")
+	}
+	return details, nil
+}
+
+// KubernetesConnection is the implementation of the ConnectionInterface for Kubernetes.
+type KubernetesConnectionImpl struct {
+	Connection Connection
+
 	Namespaces  []Namespace
 	Pods        []Pod
 	Deployments []Deployment
 	Services    []Service
 }
 
-// NewKubernetesConnection initializes a new KubernetesConnection
-func NewKubernetesConnection(conn config.Connection) *KubernetesConnection {
-	return &KubernetesConnection{
-		Connection: conn,
+func NewKubernetesConnectionImpl(connection *Connection) *KubernetesConnectionImpl {
+	return &KubernetesConnectionImpl{
+		Connection: *connection,
 	}
 }
 
-// CheckAuthentication verifies if kubectl is installed and configured correctly
-func (k *KubernetesConnection) CheckAuthentication() error {
-	// Check if kubectl is installed
+func (k *KubernetesConnectionImpl) GetConnection() Connection {
+	return k.Connection
+}
+
+func (k *KubernetesConnectionImpl) CheckAuthentication() error {
 	if _, err := exec.LookPath("kubectl"); err != nil {
 		return fmt.Errorf("kubectl is not installed")
 	}
 
-	// Check if kubectl can access the cluster
 	cmd := exec.Command("kubectl", "cluster-info")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -45,8 +106,7 @@ func (k *KubernetesConnection) CheckAuthentication() error {
 	return nil
 }
 
-// InitialContext sets up the initial context by fetching namespaces, pods, deployments, and services
-func (k *KubernetesConnection) InitialContext() error {
+func (k *KubernetesConnectionImpl) SetContext() error {
 	// Get all namespaces
 	namespaces, err := k.getNamespaces()
 	if err != nil {
@@ -78,8 +138,7 @@ func (k *KubernetesConnection) InitialContext() error {
 	return nil
 }
 
-// GetContext returns a string representation of the current state of the KubernetesConnection
-func (k *KubernetesConnection) GetContext() string {
+func (k *KubernetesConnectionImpl) GetContext() string {
 	var sb strings.Builder
 
 	sb.WriteString("Kubernetes Connection Context:\n\n")
@@ -107,50 +166,7 @@ func (k *KubernetesConnection) GetContext() string {
 	return sb.String()
 }
 
-// PrintContext returns a nicely formatted string representation of the current state of the KubernetesConnection
-func (k *KubernetesConnection) PrintContext() string {
-	var buf bytes.Buffer
-
-	// Print namespaces
-	buf.WriteString("Namespaces:\n")
-	namespaceTable := tablewriter.NewWriter(&buf)
-	namespaceTable.SetHeader([]string{"Name"})
-	for _, ns := range k.Namespaces {
-		namespaceTable.Append([]string{ns.Name})
-	}
-	namespaceTable.Render()
-
-	// Print pods
-	buf.WriteString("\nPods:\n")
-	podTable := tablewriter.NewWriter(&buf)
-	podTable.SetHeader([]string{"Name", "Namespace"})
-	for _, pod := range k.Pods {
-		podTable.Append([]string{pod.Name, pod.Namespace})
-	}
-	podTable.Render()
-
-	// Print deployments
-	buf.WriteString("\nDeployments:\n")
-	deploymentTable := tablewriter.NewWriter(&buf)
-	deploymentTable.SetHeader([]string{"Name", "Namespace"})
-	for _, dep := range k.Deployments {
-		deploymentTable.Append([]string{dep.Name, dep.Namespace})
-	}
-	deploymentTable.Render()
-
-	// Print services
-	buf.WriteString("\nServices:\n")
-	serviceTable := tablewriter.NewWriter(&buf)
-	serviceTable.SetHeader([]string{"Name", "Namespace"})
-	for _, svc := range k.Services {
-		serviceTable.Append([]string{svc.Name, svc.Namespace})
-	}
-	serviceTable.Render()
-
-	return buf.String()
-}
-
-func (k *KubernetesConnection) GetCommand(prompt string) (string, error) {
+func (k *KubernetesConnectionImpl) GetCommand(prompt string) (string, error) {
 	cmd, err := ai.GetCommand(prompt, k.CommandType(), k.GetContext())
 	if err != nil {
 		return "", err
@@ -159,8 +175,15 @@ func (k *KubernetesConnection) GetCommand(prompt string) (string, error) {
 	return cmd.Command, nil
 }
 
-func (k *KubernetesConnection) ExecuteCommand(command string) ([]byte, error) {
-	cmd := exec.Command(command)
+func (k *KubernetesConnectionImpl) ExecuteCommand(command string) ([]byte, error) {
+	// Split the command into parts
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("no command provided")
+	}
+
+	// The first part is the command, the rest are the arguments
+	cmd := exec.Command(parts[0], parts[1:]...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute command: %v", err)
@@ -169,7 +192,10 @@ func (k *KubernetesConnection) ExecuteCommand(command string) ([]byte, error) {
 	return output, nil
 }
 
-// Namespace represents a Kubernetes namespace
+func (k *KubernetesConnectionImpl) CommandType() string {
+	return "kubectl command"
+}
+
 type Namespace struct {
 	Name string `json:"name"`
 }
@@ -193,7 +219,7 @@ type Service struct {
 }
 
 // getNamespaces retrieves all namespaces in the cluster
-func (k *KubernetesConnection) getNamespaces() ([]Namespace, error) {
+func (k *KubernetesConnectionImpl) getNamespaces() ([]Namespace, error) {
 	cmd := exec.Command("kubectl", "get", "namespaces", "-o", "json")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -221,7 +247,7 @@ func (k *KubernetesConnection) getNamespaces() ([]Namespace, error) {
 }
 
 // getPods retrieves all pods across all namespaces
-func (k *KubernetesConnection) getPods() ([]Pod, error) {
+func (k *KubernetesConnectionImpl) getPods() ([]Pod, error) {
 	cmd := exec.Command("kubectl", "get", "pods", "--all-namespaces", "-o", "json")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -253,7 +279,7 @@ func (k *KubernetesConnection) getPods() ([]Pod, error) {
 }
 
 // getDeployments retrieves all deployments across all namespaces
-func (k *KubernetesConnection) getDeployments() ([]Deployment, error) {
+func (k *KubernetesConnectionImpl) getDeployments() ([]Deployment, error) {
 	cmd := exec.Command("kubectl", "get", "deployments", "--all-namespaces", "-o", "json")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -285,7 +311,7 @@ func (k *KubernetesConnection) getDeployments() ([]Deployment, error) {
 }
 
 // getServices retrieves all services across all namespaces
-func (k *KubernetesConnection) getServices() ([]Service, error) {
+func (k *KubernetesConnectionImpl) getServices() ([]Service, error) {
 	cmd := exec.Command("kubectl", "get", "services", "--all-namespaces", "-o", "json")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -314,19 +340,4 @@ func (k *KubernetesConnection) getServices() ([]Service, error) {
 	}
 
 	return services, nil
-}
-
-// Type returns the type of the connection
-func (k *KubernetesConnection) Type() string {
-	return "cloud"
-}
-
-// SubType returns the subtype of the connection
-func (k *KubernetesConnection) SubType() string {
-	return "kubernetes"
-}
-
-// CommandType returns the command type for the connection
-func (k *KubernetesConnection) CommandType() string {
-	return "kubernetes-command"
 }

@@ -11,8 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
-	config "github.com/prompt-ops/pops/config"
-	connection "github.com/prompt-ops/pops/connection"
+	"github.com/prompt-ops/pops/common"
 )
 
 const (
@@ -51,13 +50,13 @@ type shellModel struct {
 	err            error
 	history        []historyEntry
 	historyIndex   int
-	connection     config.Connection
-	popsConnection connection.ConnectionInterface
+	connection     common.Connection
+	popsConnection common.ConnectionInterface
 	spinner        spinner.Model
 	checkPassed    bool
 }
 
-func NewShellModel(conn config.Connection) shellModel {
+func NewShellModel(conn common.Connection) shellModel {
 	ti := textinput.New()
 	ti.Placeholder = "Enter your prompt..."
 	ti.Focus()
@@ -73,7 +72,7 @@ func NewShellModel(conn config.Connection) shellModel {
 	sp.Spinner = spinner.Dot
 
 	// Get the right connection implementation
-	popsConn, err := connection.GetConnection(conn)
+	popsConn, err := common.GetConnection(conn)
 	if err != nil {
 		panic(err)
 	}
@@ -99,7 +98,7 @@ func (m shellModel) runInitialChecks() tea.Msg {
 		return errMsg{err}
 	}
 
-	err = m.popsConnection.InitialContext()
+	err = m.popsConnection.SetContext()
 	if err != nil {
 		return errMsg{err}
 	}
@@ -120,10 +119,7 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case checkPassedMsg:
 		m.checkPassed = true
 		m.step = stepShowContext
-		// Call PrintContext and set the output
-		output := m.popsConnection.PrintContext()
-		m.output = output
-		// Proceed to the next step after displaying context
+		m.output = "Will be added here"
 		m.step = stepEnterPrompt
 		return m, textinput.Blink
 	case errMsg:

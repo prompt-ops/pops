@@ -38,7 +38,7 @@ func runListConnections() error {
 
 	items := make([]table.Row, len(connections))
 	for i, conn := range connections {
-		items[i] = table.Row{conn.Name, conn.Type, conn.SubType}
+		items[i] = table.Row{conn.Name, conn.Type.GetMainType(), conn.Type.GetSubtype()}
 	}
 
 	columns := []table.Column{

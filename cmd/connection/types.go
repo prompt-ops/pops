@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
-	"github.com/prompt-ops/pops/connection"
+	"github.com/prompt-ops/pops/common"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
@@ -30,11 +30,13 @@ func newTypesCmd() *cobra.Command {
 
 // runListAvaibleTypes lists all available connection types
 func runListAvaibleTypes() error {
-	connectionTypes := connection.AvailableConnectionTypes()
+	connectionTypes := common.AvailableConnectionTypes()
 
 	items := make([]table.Row, len(connectionTypes))
 	for i, connectionType := range connectionTypes {
-		items[i] = table.Row{connectionType}
+		items[i] = table.Row{
+			connectionType,
+		}
 	}
 
 	columns := []table.Column{

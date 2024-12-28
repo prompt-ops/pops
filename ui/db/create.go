@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
 	"github.com/prompt-ops/pops/ui"
 )
@@ -26,11 +27,11 @@ const (
 	stepCreateDone
 )
 
-var drivers = []string{"PostgreSQL"}
+var availableDatabaseConnections = common.AvailableDatabaseConnectionTypes
 
 type (
 	doneWaitingMsg struct {
-		Connection config.Connection
+		Connection common.Connection
 	}
 
 	errMsg struct {
@@ -42,9 +43,9 @@ type createModel struct {
 	currentStep step
 	cursor      int
 
-	driver           string
-	connectionString string
-	connection       config.Connection
+	connectionString           string
+	selectedDatabaseConnection common.AvailableDatabaseConnectionType
+	connection                 common.Connection
 
 	input           textinput.Model
 	connectionInput textinput.Model
@@ -71,7 +72,6 @@ func NewCreateModel() *createModel {
 	return &createModel{
 		currentStep:      stepSelectDriver,
 		cursor:           0,
-		driver:           "",
 		connectionString: "",
 		input:            ti,
 		connectionInput:  ci,
@@ -110,11 +110,11 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cursor--
 				}
 			case "down":
-				if m.cursor < len(drivers)-1 {
+				if m.cursor < len(availableDatabaseConnections)-1 {
 					m.cursor++
 				}
 			case "enter":
-				m.driver = drivers[m.cursor]
+				m.selectedDatabaseConnection = availableDatabaseConnections[m.cursor]
 				m.currentStep = stepEnterConnectionString
 				m.err = nil
 				return m, m.connectionInput.Focus()
@@ -163,8 +163,7 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				m.connection = config.NewDatabaseConnection(name, m.driver, m.connectionString)
-
+				m.connection = common.NewDatabaseConnection(name, m.selectedDatabaseConnection, m.connectionString)
 				if err := config.SaveConnection(m.connection); err != nil {
 					m.err = err
 					m.currentStep = stepCreateDone
@@ -196,7 +195,7 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case errMsg:
 			m.err = msg.err
 			m.currentStep = stepCreateDone
-			m.connection = config.Connection{}
+			m.connection = common.Connection{}
 			return m, nil
 		case tea.KeyMsg:
 			if quitCmd := handleQuit(msg); quitCmd != nil {
@@ -233,7 +232,7 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func waitTwoSecondsCmd(conn config.Connection) tea.Cmd {
+func waitTwoSecondsCmd(conn common.Connection) tea.Cmd {
 	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return doneWaitingMsg{
 			Connection: conn,
@@ -246,15 +245,15 @@ func (m *createModel) View() string {
 	case stepSelectDriver:
 		s := promptStyle.Render("Select a database driver (↑/↓, Enter to confirm):")
 		s += "\n\n"
-		for i, p := range drivers {
+		for i, dbConn := range availableDatabaseConnections {
 			cursor := "  "
 			if i == m.cursor {
 				cursor = "→ "
 			}
 			if i == m.cursor {
-				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Copy().Bold(true).Render(p))
+				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Copy().Bold(true).Render(dbConn.Subtype))
 			} else {
-				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Render(p))
+				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Render(dbConn.Subtype))
 			}
 		}
 		s += "\nPress 'q', 'esc', or Ctrl+C to quit."

@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
-	"github.com/prompt-ops/pops/connection/kubernetes"
+	"github.com/prompt-ops/pops/common"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
@@ -30,11 +30,11 @@ func newTypesCmd() *cobra.Command {
 
 // runListAvaibleKubernetesTypes lists all available kubernetes connection types
 func runListAvaibleKubernetesTypes() error {
-	connectionTypes := kubernetes.AvailableConnectionTypes()
+	connectionTypes := common.AvailableKubernetesConnectionTypes
 
 	items := make([]table.Row, len(connectionTypes))
 	for i, connectionType := range connectionTypes {
-		items[i] = table.Row{connectionType}
+		items[i] = table.Row{connectionType.Subtype}
 	}
 
 	columns := []table.Column{

@@ -6,8 +6,8 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
-	"github.com/prompt-ops/pops/connection"
 	"github.com/prompt-ops/pops/ui"
 )
 
@@ -30,8 +30,8 @@ type (
 type model struct {
 	currentStep step
 	cursor      int
-	connections []config.Connection
-	selected    config.Connection
+	connections []common.Connection
+	selected    common.Connection
 	err         error
 	spinner     spinner.Model
 }
@@ -57,7 +57,7 @@ func (m model) Init() tea.Cmd {
 // loadConnectionsCmd fetches existing database connections
 func (m model) loadConnectionsCmd() tea.Cmd {
 	return func() tea.Msg {
-		databaseConnections, err := config.GetConnectionsByType(connection.Database)
+		databaseConnections, err := config.GetConnectionsByType(common.ConnectionTypeDatabase)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (m model) loadConnectionsCmd() tea.Cmd {
 
 // connectionsMsg holds the list of database connections
 type connectionsMsg struct {
-	connections []config.Connection
+	connections []common.Connection
 }
 
 // Update handles incoming messages and updates the model accordingly
@@ -140,7 +140,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // transitionCmd sends the TransitionToShellMsg after spinner
-func transitionCmd(conn config.Connection) tea.Cmd {
+func transitionCmd(conn common.Connection) tea.Cmd {
 	return func() tea.Msg {
 		return ui.TransitionToShellMsg{
 			Connection: conn,

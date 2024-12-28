@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prompt-ops/pops/common"
 	config "github.com/prompt-ops/pops/config"
 	"github.com/prompt-ops/pops/ui"
 )
@@ -33,12 +34,10 @@ type (
 type model struct {
 	currentStep step
 	cursor      int
-	connections []config.Connection
-	selected    config.Connection
+	connections []common.Connection
+	selected    common.Connection
 	err         error
-
-	// Spinner for transitions
-	spinner spinner.Model
+	spinner     spinner.Model
 }
 
 // NewOpenModel initializes the open model for Cloud connections
@@ -63,7 +62,7 @@ func (m model) Init() tea.Cmd {
 // loadConnectionsCmd fetches existing cloud connections
 func (m model) loadConnectionsCmd() tea.Cmd {
 	return func() tea.Msg {
-		cloudConnections, err := config.GetConnectionsByType("cloud")
+		cloudConnections, err := config.GetConnectionsByType(common.ConnectionTypeCloud)
 		if err != nil {
 			return err
 		}
@@ -76,12 +75,10 @@ func (m model) loadConnectionsCmd() tea.Cmd {
 	}
 }
 
-// connectionsMsg holds the list of cloud connections
 type connectionsMsg struct {
-	connections []config.Connection
+	connections []common.Connection
 }
 
-// Update handles incoming messages and updates the model accordingly
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -141,20 +138,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Always update the spinner
 	m.spinner, cmd = m.spinner.Update(msg)
 	return m, cmd
 }
 
-// transitionCmd sends the TransitionToShellMsg after spinner
-func transitionCmd(conn config.Connection) tea.Cmd {
+func transitionCmd(conn common.Connection) tea.Cmd {
 	return func() tea.Msg {
-		// Normally, you might perform additional actions here
-		return ui.TransitionToShellMsg{Connection: conn}
+		return ui.TransitionToShellMsg{
+			Connection: conn,
+		}
 	}
 }
 
-// View renders the UI based on the current step
 func (m model) View() string {
 	switch m.currentStep {
 	case stepSelectConnection:

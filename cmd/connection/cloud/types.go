@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
-	"github.com/prompt-ops/pops/connection/cloud"
+	"github.com/prompt-ops/pops/common"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
@@ -30,11 +30,11 @@ func newTypesCmd() *cobra.Command {
 
 // runListAvaibleCloudTypes lists all available cloud connection types
 func runListAvaibleCloudTypes() error {
-	connectionTypes := cloud.AvailableConnectionTypes()
+	cloudConnectionTypes := common.AvailableCloudConnectionTypes
 
-	items := make([]table.Row, len(connectionTypes))
-	for i, connectionType := range connectionTypes {
-		items[i] = table.Row{connectionType}
+	items := make([]table.Row, len(cloudConnectionTypes))
+	for i, cloudConnectionType := range cloudConnectionTypes {
+		items[i] = table.Row{cloudConnectionType.Subtype}
 	}
 
 	columns := []table.Column{

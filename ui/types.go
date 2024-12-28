@@ -1,12 +1,9 @@
 package ui
 
-import (
-	config "github.com/prompt-ops/pops/config"
-)
+import "github.com/prompt-ops/pops/common"
 
-// Sent when it’s time to transition to the shell
 type TransitionToShellMsg struct {
-	Connection config.Connection
+	Connection common.Connection
 }
 
 type TransitionToCreateMsg struct {
