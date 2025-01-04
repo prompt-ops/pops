@@ -17,7 +17,6 @@ import (
 
 // Styles
 var (
-	promptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
 	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 )
 

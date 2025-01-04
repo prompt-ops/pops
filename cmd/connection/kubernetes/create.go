@@ -27,9 +27,9 @@ func (m *createModel) Init() tea.Cmd {
 }
 
 func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case ui.TransitionToShellMsg:
-		shellModel := ui.NewShellModel(msg.(ui.TransitionToShellMsg).Connection)
+		shellModel := ui.NewShellModel(msg.Connection)
 		return shellModel, shellModel.Init()
 	}
 	var cmd tea.Cmd

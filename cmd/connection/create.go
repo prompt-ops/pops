@@ -104,10 +104,10 @@ func (m *createModel) Init() tea.Cmd {
 func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.currentStep {
 	case createStepTypeSelection:
-		switch msg.(type) {
+		switch msg := msg.(type) {
 		case ui.TransitionToCreateMsg:
 			fmt.Println("Transitioning to create")
-			connectionType := msg.(ui.TransitionToCreateMsg).ConnectionType
+			connectionType := msg.ConnectionType
 			createModel, err := factory.GetCreateModel(connectionType)
 			if err != nil {
 				return m, tea.Quit

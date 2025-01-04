@@ -16,7 +16,6 @@ import (
 
 var (
 	promptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
-	outputStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 )
 
 const (
@@ -251,7 +250,7 @@ func (m *createModel) View() string {
 				cursor = "→ "
 			}
 			if i == m.cursor {
-				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Copy().Bold(true).Render(dbConn.Subtype))
+				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Bold(true).Render(dbConn.Subtype))
 			} else {
 				s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Render(dbConn.Subtype))
 			}

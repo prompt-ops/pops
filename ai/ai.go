@@ -108,10 +108,11 @@ func parseResponse(response string) (ParsedResponse, error) {
 // parseSuggestions extracts the suggestions from the response.
 func parseSuggestions(lines []string) []string {
 	var suggestions []string
+	re := regexp.MustCompile(`^\d+\.\s+`)
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		// Match numbered suggestions (e.g., "1. Describe one of the pods")
-		if matched, _ := regexp.MatchString(`^\d+\.\s+`, line); matched {
+		if matched := re.MatchString(line); matched {
 			suggestions = append(suggestions, line)
 		}
 	}

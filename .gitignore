@@ -35,3 +35,6 @@ Thumbs.db
 
 # `pops` binary
 pops
+
+# dist directory
+dist/

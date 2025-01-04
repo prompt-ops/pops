@@ -1,9 +1,16 @@
-name: Release
+name: Build
 
 on:
   push:
+    branches:
+      - main
+      - release/*
     tags:
       - "v*.*.*"
+  pull_request:
+    branches:
+      - main
+      - release/*
 
 permissions:
   contents: write
@@ -51,38 +58,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pops-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/pops-${{ matrix.goos }}-${{ matrix.goarch }}*
-
-  release:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist/
-          pattern: pops-*
-
-      - name: List dist folder
-        run: ls -R dist/
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          repository: prompt-ops/pops
-          files: |
-            dist/pops-darwin-amd64/pops-darwin-amd64
-            dist/pops-darwin-arm64/pops-darwin-arm64
-            dist/pops-linux-amd64/pops-linux-amd64
-            dist/pops-linux-arm64/pops-linux-arm64
-            dist/pops-windows-amd64/pops-windows-amd64.exe
-            dist/pops-windows-arm64/pops-windows-arm64.exe
-          draft: false
-          prerelease: false
+          path: dist/*

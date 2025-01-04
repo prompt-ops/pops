@@ -172,7 +172,7 @@ func (m *openModel) View() string {
 		if m.err != nil {
 			return errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'q' or 'esc' to quit.", m.err))
 		}
-		return fmt.Sprintf("✅ Connection opened!\n\nPress 'Enter' or 'q'/'esc' to exit.")
+		return "✅ Connection opened!\n\nPress 'Enter' or 'q'/'esc' to exit."
 
 	default:
 		return ""
