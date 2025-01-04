@@ -25,20 +25,33 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 1.22
+          cache: false
 
       - name: Install dependencies
         run: go mod tidy
 
+      - name: Create dist directory
+        run: mkdir -p dist
+
       - name: Build binaries
         run: |
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
-          export GO111MODULE=on && go build -ldflags="-s -w" -o pops-${{ matrix.goos }}-${{ matrix.goarch }}
+          echo "Building for GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}"
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 GO111MODULE=on \
+          go build -ldflags="-s -w" -o dist/pops-${{ matrix.goos }}-${{ matrix.goarch }}
+
+      - name: Rename Windows binaries with .exe
+        if: matrix.goos == 'windows'
+        run: mv dist/pops-windows-${{ matrix.goarch }} dist/pops-windows-${{ matrix.goarch }}.exe
+
+      - name: Validate binary
+        run: |
+          file dist/pops-${{ matrix.goos }}-${{ matrix.goarch }}*
 
       - name: Upload binaries as artifact
         uses: actions/upload-artifact@v4
         with:
           name: pops-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: pops-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
 
   release:
     runs-on: ubuntu-latest
@@ -53,10 +66,11 @@ jobs:
         with:
           path: release
           pattern: pops-*
-          merge-multiple: true
-      - run: ls -R release
 
-      - name: Release
+      - name: List release folder
+        run: ls -R release
+
+      - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         env:
