@@ -26,7 +26,8 @@ func TestNewDatabaseConnection(t *testing.T) {
 			want: Connection{
 				Name: "test",
 				Type: DatabaseConnectionType{
-					Subtype: "postgres",
+					MainType: ConnectionTypeDatabase,
+					Subtype:  "PostgreSQL",
 				},
 				Details: DatabaseConnectionDetails{
 					ConnectionString: "host=localhost user=test password=test dbname=test",

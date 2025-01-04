@@ -23,7 +23,9 @@ func TestNewKubernetesConnection(t *testing.T) {
 			},
 			want: Connection{
 				Name: "test",
-				Type: KubernetesConnectionType{},
+				Type: KubernetesConnectionType{
+					MainType: ConnectionTypeKubernetes,
+				},
 				Details: KubernetesConnectionDetails{
 					SelectedContext: "test-context",
 				},

@@ -24,7 +24,8 @@ func TestNewCloudConnection(t *testing.T) {
 			want: Connection{
 				Name: "test",
 				Type: CloudConnectionType{
-					Subtype: "aws",
+					MainType: ConnectionTypeCloud,
+					Subtype:  "AWS",
 				},
 				Details: CloudConnectionDetails{},
 			},
