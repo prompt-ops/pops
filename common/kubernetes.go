@@ -1,11 +1,13 @@
 package common
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/prompt-ops/pops/ai"
 )
 
@@ -167,7 +169,12 @@ func (k *KubernetesConnectionImpl) GetContext() string {
 }
 
 func (k *KubernetesConnectionImpl) GetCommand(prompt string) (string, error) {
-	cmd, err := ai.GetCommand(prompt, k.CommandType(), k.GetContext())
+	aiModel, err := ai.NewOpenAIModel(k.CommandType(), k.GetContext())
+	if err != nil {
+		return "", fmt.Errorf("failed to create AI model: %v", err)
+	}
+
+	cmd, err := aiModel.GetCommand(prompt)
 	if err != nil {
 		return "", err
 	}
@@ -190,6 +197,53 @@ func (k *KubernetesConnectionImpl) ExecuteCommand(command string) ([]byte, error
 	}
 
 	return output, nil
+}
+
+func (k *KubernetesConnectionImpl) FormatResultAsTable(result []byte) (string, error) {
+	// Convert the byte array to a string
+	resultStr := string(result)
+
+	// Split the result into lines
+	lines := strings.Split(resultStr, "\n")
+	if len(lines) == 0 {
+		return "", fmt.Errorf("no data to format")
+	}
+
+	// The first line is assumed to be the header
+	header := strings.Fields(lines[0])
+	if len(header) == 0 {
+		return "", fmt.Errorf("no headers found in result")
+	}
+
+	// Parse the remaining lines as rows
+	var rows [][]string
+	for _, line := range lines[1:] {
+		// Skip empty lines
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		// Split the line into fields and add it to the rows
+		row := strings.Fields(line)
+		rows = append(rows, row)
+	}
+
+	// Create a buffer to write the formatted table
+	var buffer bytes.Buffer
+
+	// Initialize the table writer
+	table := tablewriter.NewWriter(&buffer)
+	table.SetHeader(header)
+
+	// Add rows to the table
+	for _, row := range rows {
+		table.Append(row)
+	}
+
+	// Render the table
+	table.Render()
+
+	// Return the formatted table as a string
+	return buffer.String(), nil
 }
 
 func (k *KubernetesConnectionImpl) CommandType() string {

@@ -1,11 +1,13 @@
 package common
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 
 	_ "github.com/lib/pq"
+	"github.com/olekukonko/tablewriter"
 	"github.com/prompt-ops/pops/ai"
 )
 
@@ -272,10 +274,56 @@ func (b *BaseRDBMSConnection) ExecuteCommand(command string) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO: Remove this
-	fmt.Printf("Command Result: %s\n", string(data))
-
 	return data, nil
+}
+
+func (b *BaseRDBMSConnection) FormatResultAsTable(result []byte) (string, error) {
+	// Parse the JSON data
+	var rows []map[string]interface{}
+	if err := json.Unmarshal(result, &rows); err != nil {
+		return "", fmt.Errorf("failed to parse JSON result: %v", err)
+	}
+
+	// Check if there is any data to format
+	if len(rows) == 0 {
+		return "No data available", nil
+	}
+
+	// Extract the header from the first row
+	var header []string
+	for col := range rows[0] {
+		header = append(header, col)
+	}
+
+	// Prepare rows for the table
+	var tableRows [][]string
+	for _, row := range rows {
+		var tableRow []string
+		for _, col := range header {
+			// Handle nil values or values of different types
+			if value, ok := row[col]; ok {
+				tableRow = append(tableRow, fmt.Sprintf("%v", value))
+			} else {
+				tableRow = append(tableRow, "") // Empty for missing values
+			}
+		}
+		tableRows = append(tableRows, tableRow)
+	}
+
+	// Create a buffer to write the formatted table
+	var buffer bytes.Buffer
+	table := tablewriter.NewWriter(&buffer)
+
+	// Add the header and rows to the table
+	table.SetHeader(header)
+	for _, row := range tableRows {
+		table.Append(row)
+	}
+
+	// Render the table
+	table.Render()
+
+	return buffer.String(), nil
 }
 
 type PostgreSQLConnection struct {
@@ -283,6 +331,10 @@ type PostgreSQLConnection struct {
 }
 
 func NewPostgreSQLConnection(connnection *Connection) *PostgreSQLConnection {
+	if connnection.Type.GetSubtype() != "PostgreSQL" {
+		panic("Connection type is not PostgreSQL")
+	}
+
 	return &PostgreSQLConnection{
 		BaseRDBMSConnection{
 			BaseDatabaseConnection{
@@ -303,7 +355,12 @@ func (p *PostgreSQLConnection) GetCommand(prompt string) (string, error) {
 		}
 	}
 
-	cmd, err := ai.GetCommand(prompt, p.CommandType(), p.GetContext())
+	aiModel, err := ai.NewOpenAIModel(p.CommandType(), p.GetContext())
+	if err != nil {
+		return "", fmt.Errorf("failed to create AI model: %v", err)
+	}
+
+	cmd, err := aiModel.GetCommand(prompt)
 	if err != nil {
 		return "", fmt.Errorf("failed to get command from AI: %v", err)
 	}

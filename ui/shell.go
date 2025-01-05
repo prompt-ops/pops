@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"strings"
 
@@ -10,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/olekukonko/tablewriter"
 	"github.com/prompt-ops/pops/common"
 )
 
@@ -338,50 +335,15 @@ func (m shellModel) runCommand(command string) tea.Cmd {
 			return errMsg{err}
 		}
 
-		tableStr := formatAsTable(out)
-		return outputMsg{output: tableStr}
-	}
-}
-
-func formatAsTable(output []byte) string {
-	lines := splitLines(output)
-	if len(lines) == 0 {
-		return string(output) // fallback if no lines
-	}
-
-	var buf bytes.Buffer
-	table := tablewriter.NewWriter(&buf)
-
-	// Parse the first line as headers
-	headers := strings.Fields(lines[0])
-	table.SetHeader(headers)
-	headerCount := len(headers)
-
-	// Parse the remaining lines as rows
-	for _, line := range lines[1:] {
-		fields := strings.Fields(line)
-		// If we have more fields than headers, merge the extras into the last column
-		if len(fields) > headerCount {
-			merged := strings.Join(fields[headerCount-1:], " ")
-			fields = append(fields[:headerCount-1], merged)
+		outStr, err := m.popsConnection.FormatResultAsTable(out)
+		if err != nil {
+			return errMsg{err}
 		}
-		table.Append(fields)
-	}
 
-	table.Render()
-	return buf.String()
-}
-
-func splitLines(output []byte) []string {
-	scanner := bufio.NewScanner(bytes.NewReader(output))
-	var lines []string
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.TrimSpace(text) != "" {
-			lines = append(lines, text)
+		return outputMsg{
+			output: outStr,
 		}
 	}
-	return lines
 }
 
 type commandMsg struct {

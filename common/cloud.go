@@ -1,11 +1,13 @@
 package common
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/prompt-ops/pops/ai"
 )
 
@@ -118,6 +120,55 @@ func (c *BaseCloudConnection) ExecuteCommand(command string) ([]byte, error) {
 	return output, nil
 }
 
+func (c *BaseCloudConnection) FormatResultAsTable(result []byte) (string, error) {
+	// Parse the JSON data
+	var rows []map[string]interface{}
+	if err := json.Unmarshal(result, &rows); err != nil {
+		return "", fmt.Errorf("failed to parse JSON result: %v", err)
+	}
+
+	// Check if there is any data to format
+	if len(rows) == 0 {
+		return "No data available", nil
+	}
+
+	// Extract the header from the first row
+	var header []string
+	for col := range rows[0] {
+		header = append(header, col)
+	}
+
+	// Prepare rows for the table
+	var tableRows [][]string
+	for _, row := range rows {
+		var tableRow []string
+		for _, col := range header {
+			// Handle nil values or values of different types
+			if value, ok := row[col]; ok {
+				tableRow = append(tableRow, fmt.Sprintf("%v", value))
+			} else {
+				tableRow = append(tableRow, "") // Empty for missing values
+			}
+		}
+		tableRows = append(tableRows, tableRow)
+	}
+
+	// Create a buffer to write the formatted table
+	var buffer bytes.Buffer
+	table := tablewriter.NewWriter(&buffer)
+
+	// Add the header and rows to the table
+	table.SetHeader(header)
+	for _, row := range tableRows {
+		table.Append(row)
+	}
+
+	// Render the table
+	table.Render()
+
+	return buffer.String(), nil
+}
+
 type AzureConnection struct {
 	BaseCloudConnection
 
@@ -190,7 +241,16 @@ func (a *AzureConnection) GetCommand(prompt string) (string, error) {
 		}
 	}
 
-	cmd, err := ai.GetCommand(prompt, a.CommandType(), a.GetContext())
+	// Because this is the initial version of Prompt-Ops,
+	// we are going to have overlaps like having context both
+	// in the connection and in the AI model.
+	// As we iterate on building Prompt-Ops, we will remove this overlap.
+	aiModel, err := ai.NewOpenAIModel(a.CommandType(), a.GetContext())
+	if err != nil {
+		return "", fmt.Errorf("failed to create AI model: %v", err)
+	}
+
+	cmd, err := aiModel.GetCommand(prompt)
 	if err != nil {
 		return "", fmt.Errorf("failed to get command from AI: %v", err)
 	}

@@ -141,6 +141,9 @@ type ConnectionInterface interface {
 	// ExecuteCommand executes the given command and returns the output as byte array.
 	ExecuteCommand(command string) ([]byte, error)
 
+	// FormatResultAsTable formats the result as a table.
+	FormatResultAsTable(result []byte) (string, error)
+
 	// GetCommand gets the command from AI using context and the user prompt.
 	GetCommand(prompt string) (string, error)
 
