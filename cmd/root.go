@@ -9,8 +9,7 @@ import (
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pops",
-		Short: "Pops is a CLI tool for managing cloud and Kubernetes connections.",
-		// Optionally, you can add a Run function or leave it empty if the root command only has subcommands
+		Short: "Prompt-Ops manages your infrastructure using natural language.",
 	}
 
 	// Add subcommands

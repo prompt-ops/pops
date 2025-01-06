@@ -238,6 +238,9 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *createModel) View() string {
+	// Clear the terminal before rendering the UI
+	clearScreen := "\033[H\033[2J"
+
 	switch m.currentStep {
 	case stepSelectContext:
 		s := titleStyle.Render("Select a Kubernetes context (↑/↓, Enter to confirm):")
@@ -252,7 +255,7 @@ func (m *createModel) View() string {
 			s += unselectedStyle.Render(cursor+ctx) + "\n"
 		}
 		s += "\n" + helpStyle.Render("Press 'q' or 'esc' or Ctrl+C to quit.")
-		return s
+		return clearScreen + s
 
 	case stepEnterConnectionName:
 		s := titleStyle.Render("Enter a name for the Kubernetes connection:")
@@ -263,21 +266,19 @@ func (m *createModel) View() string {
 		}
 		s += m.input.View()
 		s += "\n" + helpStyle.Render("Press 'q' or 'esc' or Ctrl+C to quit.")
-		return s
+		return clearScreen + s
 
 	case stepCreateSpinner:
-		return outputStyle.Render("Saving connection... ") + m.spinner.View()
+		return clearScreen + outputStyle.Render("Saving connection... ") + m.spinner.View()
 
 	case stepCreateDone:
 		if m.err != nil {
-			return errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'Enter' or 'q'/'esc' to quit.", m.err))
+			return clearScreen + errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'Enter' or 'q'/'esc' to quit.", m.err))
 		}
 
-		return outputStyle.Render(
-			"✅ Kubernetes connection created!\n\nPress 'Enter' or 'q'/'esc' to exit.",
-		)
+		return clearScreen + outputStyle.Render("✅ Kubernetes connection created!\n\nPress 'Enter' or 'q'/'esc' to exit.")
 
 	default:
-		return ""
+		return clearScreen
 	}
 }

@@ -200,6 +200,9 @@ func waitTwoSecondsCmd(conn common.Connection) tea.Cmd {
 }
 
 func (m *createModel) View() string {
+	// Clear the terminal before rendering the UI
+	clearScreen := "\033[H\033[2J"
+
 	switch m.currentStep {
 	case stepSelectProvider:
 		s := titleStyle.Render("Select a cloud provider (↑/↓, Enter to confirm):")
@@ -212,7 +215,7 @@ func (m *createModel) View() string {
 			s += fmt.Sprintf("%s%s\n", cursor, promptStyle.Render(p.Subtype))
 		}
 		s += "\nPress 'q' or 'esc' or Ctrl+C to quit."
-		return s
+		return clearScreen + s
 
 	case stepEnterConnectionName:
 		s := titleStyle.Render("Enter a name for the Cloud connection:")
@@ -223,21 +226,21 @@ func (m *createModel) View() string {
 		}
 		s += m.input.View()
 		s += "\n" + helpStyle.Render("Press 'q' or 'esc' or Ctrl+C to quit.")
-		return s
+		return clearScreen + s
 
 	case stepCreateSpinner:
-		return outputStyle.Render("Saving connection... ") + m.spinner.View()
+		return clearScreen + outputStyle.Render("Saving connection... ") + m.spinner.View()
 
 	case stepCreateDone:
 		if m.err != nil {
-			return errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'Enter' or 'q'/'esc' to quit.", m.err))
+			return clearScreen + errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'Enter' or 'q'/'esc' to quit.", m.err))
 		}
 
-		return outputStyle.Render(
+		return clearScreen + outputStyle.Render(
 			"✅ Cloud connection created!\n\nPress 'Enter' or 'q'/'esc' to exit.",
 		)
 
 	default:
-		return ""
+		return clearScreen
 	}
 }

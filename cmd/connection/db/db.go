@@ -7,7 +7,20 @@ import (
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "db",
-		Short: "Manage db connections.",
+		Short: "Manage database connections.",
+		Long: `
+Database Connection:
+
+- Available Database connection types: MySQL, PostgreSQL, and MongoDB.
+- Commands: create, delete, open, list, types.
+- Examples:
+ * 'pops connection db create' creates a connection to a database.
+ * 'pops connection db open' opens an existing database connection.
+ * 'pops connection db list' lists all database connections.
+ * 'pops connection db delete' deletes a database connection.
+ * 'pops connection db types' lists all available database connection types (for now; MySQL, PostgreSQL, and MongoDB).
+
+More connection types and features are coming soon!`,
 	}
 
 	// `pops connection db create *` commands

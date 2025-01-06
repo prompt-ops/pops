@@ -151,6 +151,9 @@ func transitionCmd(conn common.Connection) tea.Cmd {
 }
 
 func (m model) View() string {
+	// Clear the terminal before rendering the UI
+	clearScreen := "\033[H\033[2J"
+
 	switch m.currentStep {
 	case stepSelectConnection:
 		s := titleStyle.Render("Select a Cloud Connection (↑/↓, Enter to open):")
@@ -165,23 +168,23 @@ func (m model) View() string {
 			s += unselectedStyle.Render(fmt.Sprintf("%s%s", cursor, conn.Name)) + "\n"
 		}
 		s += "\n" + helpStyle.Render("Press 'q' or 'esc' or Ctrl+C to quit.")
-		return s
+		return clearScreen + s
 
 	case stepOpenSpinner:
-		return lipgloss.JoinHorizontal(lipgloss.Left,
+		return clearScreen + lipgloss.JoinHorizontal(lipgloss.Left,
 			fmt.Sprintf("Opening connection '%s'...", m.selected.Name),
 			m.spinner.View(),
 		)
 
 	case stepOpenDone:
 		if m.err != nil {
-			return errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'q' or 'esc' to quit.", m.err))
+			return clearScreen + errorStyle.Render(fmt.Sprintf("❌ Error: %v\n\nPress 'q' or 'esc' to quit.", m.err))
 		}
-		return lipgloss.JoinHorizontal(lipgloss.Left,
+		return clearScreen + lipgloss.JoinHorizontal(lipgloss.Left,
 			"✅ Connection opened!",
 			"\n\nPress 'Enter' or 'q'/'esc' to exit.",
 		)
 	default:
-		return ""
+		return clearScreen
 	}
 }

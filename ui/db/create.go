@@ -240,6 +240,9 @@ func waitTwoSecondsCmd(conn common.Connection) tea.Cmd {
 }
 
 func (m *createModel) View() string {
+	// Clear the terminal before rendering the UI
+	clearScreen := "\033[H\033[2J"
+
 	switch m.currentStep {
 	case stepSelectDriver:
 		s := promptStyle.Render("Select a database driver (↑/↓, Enter to confirm):")
@@ -256,7 +259,7 @@ func (m *createModel) View() string {
 			}
 		}
 		s += "\nPress 'q', 'esc', or Ctrl+C to quit."
-		return s
+		return clearScreen + s
 
 	case stepEnterConnectionString:
 		s := promptStyle.Render("Enter the connection string:")
@@ -267,7 +270,7 @@ func (m *createModel) View() string {
 		}
 		s += m.connectionInput.View()
 		s += "\n\nPress 'Enter' to proceed or 'q', 'esc' to quit."
-		return s
+		return clearScreen + s
 
 	case stepEnterConnectionName:
 		s := promptStyle.Render("Enter a name for the database connection:")
@@ -278,22 +281,22 @@ func (m *createModel) View() string {
 		}
 		s += m.input.View()
 		s += "\n\nPress 'Enter' to save or 'q', 'esc' to quit."
-		return s
+		return clearScreen + s
 
 	case stepCreateSpinner:
 		if m.err != nil {
-			return fmt.Sprintf("❌ Error: %v\n\nPress 'q', 'esc', or Ctrl+C to quit.", m.err)
+			return clearScreen + fmt.Sprintf("❌ Error: %v\n\nPress 'q', 'esc', or Ctrl+C to quit.", m.err)
 		}
-		return fmt.Sprintf("Saving connection... %s", m.spinner.View())
+		return clearScreen + fmt.Sprintf("Saving connection... %s", m.spinner.View())
 
 	case stepCreateDone:
 		if m.err != nil {
-			return fmt.Sprintf("❌ Error: %v\n\nPress 'q', 'esc', or Ctrl+C to quit.", m.err)
+			return clearScreen + fmt.Sprintf("❌ Error: %v\n\nPress 'q', 'esc', or Ctrl+C to quit.", m.err)
 		}
 
-		return "✅ Database connection created!\n\nPress 'Enter' to continue or 'q', 'esc' to quit."
+		return clearScreen + "✅ Database connection created!\n\nPress 'Enter' to continue or 'q', 'esc' to quit."
 
 	default:
-		return ""
+		return clearScreen
 	}
 }
