@@ -1,8 +1,6 @@
 package connection
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -106,7 +104,6 @@ func (m *createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case createStepTypeSelection:
 		switch msg := msg.(type) {
 		case ui.TransitionToCreateMsg:
-			fmt.Println("Transitioning to create")
 			connectionType := msg.ConnectionType
 			createModel, err := factory.GetCreateModel(connectionType)
 			if err != nil {

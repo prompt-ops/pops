@@ -164,8 +164,6 @@ func (o *OpenAIModel) GetCommand(prompt string) (*AIResponse, error) {
 
 	choice := chatCompletion.Choices[0]
 
-	fmt.Println("choice: ", choice)
-
 	// If the model returned a tool call, parse the JSON in toolCall.Arguments.
 	if choice.Message.ToolCalls != nil {
 		return parseToolCalls(choice.Message.ToolCalls)
@@ -179,9 +177,6 @@ func (o *OpenAIModel) GetCommand(prompt string) (*AIResponse, error) {
 		return nil, err
 	}
 
-	// Debug/Log
-	fmt.Println("command: ", parsedAIResponse.Command)
-	fmt.Println("suggested next steps: ", parsedAIResponse.NextSteps)
 	return &parsedAIResponse, nil
 }
 
@@ -200,9 +195,6 @@ func parseToolCalls(toolCalls []openai.ChatCompletionMessageToolCall) (*AIRespon
 			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal tool call args: %v", err)
 			}
-
-			fmt.Println("command from parseToolCalls: ", args.Command)
-			fmt.Println("suggested next steps from parseToolCalls: ", args.SuggestedNextSteps)
 
 			return &AIResponse{
 				Command:   args.Command,
