@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
 	config "github.com/prompt-ops/pops/config"
+	"github.com/prompt-ops/pops/ui/common"
 	commonui "github.com/prompt-ops/pops/ui/common"
 	"github.com/spf13/cobra"
 )
@@ -26,20 +27,33 @@ func newDeleteCmd() *cobra.Command {
 			}
 
 			if all {
-				deleteAllConnections()
+				err := common.RunWithSpinner("Deleting all connections...", deleteAllConnections)
+				if err != nil {
+					color.Red("Failed to delete all connections: %v", err)
+				}
 				return
 			} else if len(args) == 1 {
-				deleteConnection(args[0])
+				connectionName := args[0]
+				err := common.RunWithSpinner(fmt.Sprintf("Deleting connection '%s'...", connectionName), func() error {
+					return deleteConnection(connectionName)
+				})
+				if err != nil {
+					color.Red("Failed to delete connection '%s': %v", connectionName, err)
+				}
 				return
 			} else {
-				// Interactive delete using Bubble Tea
 				selectedConnection, err := runInteractiveDelete()
 				if err != nil {
 					color.Red("Error: %v", err)
 					return
 				}
 				if selectedConnection != "" {
-					deleteConnection(selectedConnection)
+					err := common.RunWithSpinner(fmt.Sprintf("Deleting connection '%s'...", selectedConnection), func() error {
+						return deleteConnection(selectedConnection)
+					})
+					if err != nil {
+						color.Red("Failed to delete connection '%s': %v", selectedConnection, err)
+					}
 				}
 			}
 		},
@@ -51,23 +65,19 @@ func newDeleteCmd() *cobra.Command {
 }
 
 // deleteAllConnections deletes all connections
-func deleteAllConnections() {
-	color.Yellow("Deleting all connections")
+func deleteAllConnections() error {
 	if err := config.DeleteAllConnections(); err != nil {
-		color.Red("Error deleting all connections: %v", err)
-		return
+		return fmt.Errorf("error deleting all connections: %w", err)
 	}
-	color.Green("Deleted all connections")
+	return nil
 }
 
 // deleteConnection deletes a single connection by name
-func deleteConnection(name string) {
-	color.Yellow("Deleting connection %s", name)
+func deleteConnection(name string) error {
 	if err := config.DeleteConnectionByName(name); err != nil {
-		color.Red("Error deleting connection: %v", err)
-		return
+		return fmt.Errorf("error deleting connection '%s': %w", name, err)
 	}
-	color.Green("Deleted connection %s", name)
+	return nil
 }
 
 // runInteractiveDelete runs the Bubble Tea program for interactive deletion

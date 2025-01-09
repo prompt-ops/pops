@@ -11,29 +11,33 @@ import (
 func NewConnectionCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "connection",
-		Short: "Prompt-Ops manages your infrastructure using natural language.",
+		Short: "Manage your infrastructure connections using natural language.",
 		Long: `
 Prompt-Ops manages your infrastructure using natural language.
 
-Cloud Connection:
+**Cloud Connection:**
+- **Types**: Azure, AWS
+- **Commands**: create, delete, open, list, types
+- **Example**: 'pops connection cloud create' creates a connection to a cloud provider.
 
-- Available Cloud connection types: Azure and AWS.
-- Commands: create, delete, open, list, types.
-- Example: 'pops connection cloud create' creates a connection to a cloud provider.
+**Database Connection:**
+- **Types**: MySQL, PostgreSQL, MongoDB
+- **Commands**: create, delete, open, list, types
+- **Example**: 'pops connection db create' creates a connection to a database.
 
-Database Connection:
-
-- Available Database connection types: MySQL, PostgreSQL, and MongoDB.
-- Commands: create, delete, open, list, types.
-- Example: 'pops connection db create' creates a connection to a database.
-
-Kubernetes Connection:
-
-- Available Kubernetes connection types: Any Kubernetes cluster that is available in your environment.
-- Commands: create, delete, open, list, types.
-- Example: 'pops connection kubernetes create' creates a connection to a Kubernetes cluster.
+**Kubernetes Connection:**
+- **Types**: Any available Kubernetes cluster
+- **Commands**: create, delete, open, list, types
+- **Example**: 'pops connection kubernetes create' creates a connection to a Kubernetes cluster.
 
 More connection types and features are coming soon!`,
+		Example: `
+- **pops connection create** - Create a connection by selecting from available types.
+- **pops connection open** - Open a connection by selecting from available connections.
+- **pops connection delete** - Delete a connection by selecting from available connections.
+- **pops connection delete --all** - Delete all available connections.
+- **pops connection list** - List all available connections.
+						`,
 	}
 
 	// Add subcommands

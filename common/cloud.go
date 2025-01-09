@@ -258,6 +258,32 @@ func (a *AzureConnection) GetCommand(prompt string) (string, error) {
 	return cmd.Command, nil
 }
 
+func (a *AzureConnection) GetAnswer(prompt string) (string, error) {
+	if a.ResourceGroups == nil {
+		// Call GetContext to populate the resource groups.
+		// This is a fallback in case GetContext is not called.
+		if err := a.SetContext(); err != nil {
+			return "", fmt.Errorf("error getting context: %v", err)
+		}
+	}
+
+	// Because this is the initial version of Prompt-Ops,
+	// we are going to have overlaps like having context both
+	// in the connection and in the AI model.
+	// As we iterate on building Prompt-Ops, we will remove this overlap.
+	aiModel, err := ai.NewOpenAIModel(a.CommandType(), a.GetContext())
+	if err != nil {
+		return "", fmt.Errorf("failed to create AI model: %v", err)
+	}
+
+	answer, err := aiModel.GetAnswer(prompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to get answer from AI: %v", err)
+	}
+
+	return answer.Answer, nil
+}
+
 func (a *AzureConnection) CommandType() string {
 	return "az cli command"
 }

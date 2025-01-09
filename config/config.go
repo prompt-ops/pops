@@ -188,6 +188,29 @@ func DeleteAllConnections() error {
 	return nil
 }
 
+func DeleteAllConnectionsByType(connectionType string) error {
+	if connections == nil {
+		if err := loadConnections(); err != nil {
+			return err
+		}
+	}
+
+	var updatedConnections []common.Connection
+	for _, conn := range connections {
+		if !strings.EqualFold(conn.Type.GetMainType(), connectionType) {
+			updatedConnections = append(updatedConnections, conn)
+		}
+	}
+
+	connections = updatedConnections
+
+	if err := writeConnections(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CheckIfNameExists checks if a connection with the given name already exists.
 func CheckIfNameExists(name string) bool {
 	if connections == nil {

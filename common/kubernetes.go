@@ -182,6 +182,20 @@ func (k *KubernetesConnectionImpl) GetCommand(prompt string) (string, error) {
 	return cmd.Command, nil
 }
 
+func (k *KubernetesConnectionImpl) GetAnswer(prompt string) (string, error) {
+	aiModel, err := ai.NewOpenAIModel(k.CommandType(), k.GetContext())
+	if err != nil {
+		return "", fmt.Errorf("failed to create AI model: %v", err)
+	}
+
+	answer, err := aiModel.GetAnswer(prompt)
+	if err != nil {
+		return "", err
+	}
+
+	return answer.Answer, nil
+}
+
 func (k *KubernetesConnectionImpl) ExecuteCommand(command string) ([]byte, error) {
 	// Split the command into parts
 	parts := strings.Fields(command)

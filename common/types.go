@@ -147,6 +147,9 @@ type ConnectionInterface interface {
 	// GetCommand gets the command from AI using context and the user prompt.
 	GetCommand(prompt string) (string, error)
 
+	// GetAnswer gets the answer from AI using context and the user prompt.
+	GetAnswer(prompt string) (string, error)
+
 	// CommandType returns the type of the command.
 	// Example: "psql", "az", "kubectl".
 	CommandType() string

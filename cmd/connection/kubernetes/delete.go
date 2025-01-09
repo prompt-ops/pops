@@ -18,7 +18,10 @@ func newDeleteCmd() *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a kubernetes connection or all kubernetes connections",
-		Long:  "Delete a kubernetes connection or all kubernetes connections",
+		Example: `
+- **pops connection kubernetes delete my-k8s-connection**: Delete a kubernetes connection named 'my-k8s-connection'.
+- **pops connection kubernetes delete --all**: Delete all kubernetes connections.
+		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			all, err := cmd.Flags().GetBool("all")
 			if err != nil {
@@ -27,20 +30,33 @@ func newDeleteCmd() *cobra.Command {
 			}
 
 			if all {
-				deleteAllKubernetesConnections()
+				err := commonui.RunWithSpinner("Deleting all kubernetes connections...", deleteAllKubernetesConnections)
+				if err != nil {
+					color.Red("Failed to delete all kubernetes connections: %v", err)
+				}
 				return
 			} else if len(args) == 1 {
-				deleteKubernetesConnection(args[0])
+				connectionName := args[0]
+				err := commonui.RunWithSpinner(fmt.Sprintf("Deleting kubernetes connection '%s'...", connectionName), func() error {
+					return deleteKubernetesConnection(connectionName)
+				})
+				if err != nil {
+					color.Red("Failed to delete kubernetes connection '%s': %v", connectionName, err)
+				}
 				return
 			} else {
-				// Interactive delete using Bubble Tea
 				selectedConnection, err := runInteractiveDelete()
 				if err != nil {
 					color.Red("Error: %v", err)
 					return
 				}
 				if selectedConnection != "" {
-					deleteKubernetesConnection(selectedConnection)
+					err := commonui.RunWithSpinner(fmt.Sprintf("Deleting kubernetes connection '%s'...", selectedConnection), func() error {
+						return deleteKubernetesConnection(selectedConnection)
+					})
+					if err != nil {
+						color.Red("Failed to delete kubernetes connection '%s': %v", selectedConnection, err)
+					}
 				}
 			}
 		},
@@ -52,28 +68,24 @@ func newDeleteCmd() *cobra.Command {
 }
 
 // deleteAllKubernetesConnections deletes all kubernetes connections
-func deleteAllKubernetesConnections() {
-	color.Yellow("Deleting all kubernetes connections")
-	if err := config.DeleteAllConnections(); err != nil {
-		color.Red("Error deleting all kubernetes connections: %v", err)
-		return
+func deleteAllKubernetesConnections() error {
+	if err := config.DeleteAllConnectionsByType(common.ConnectionTypeCloud); err != nil {
+		return fmt.Errorf("error deleting all kubernetes connections: %w", err)
 	}
-	color.Green("Deleted all kubernetes connections")
+	return nil
 }
 
 // deleteKubernetesConnection deletes a single kubernetes connection by name
-func deleteKubernetesConnection(name string) {
-	color.Yellow("Deleting kubernetes connection %s", name)
+func deleteKubernetesConnection(name string) error {
 	if err := config.DeleteConnectionByName(name); err != nil {
-		color.Red("Error deleting kubernetes connection: %v", err)
-		return
+		return fmt.Errorf("error deleting kubernetes connection: %w", err)
 	}
-	color.Green("Deleted kubernetes connection %s", name)
+	return nil
 }
 
 // runInteractiveDelete runs the Bubble Tea program for interactive deletion
 func runInteractiveDelete() (string, error) {
-	connections, err := config.GetConnectionsByType(common.ConnectionTypeKubernetes)
+	connections, err := config.GetConnectionsByType(common.ConnectionTypeCloud)
 	if err != nil {
 		return "", fmt.Errorf("getting connections: %w", err)
 	}
@@ -86,7 +98,7 @@ func runInteractiveDelete() (string, error) {
 	columns := []table.Column{
 		{Title: "Name", Width: 25},
 		{Title: "Type", Width: 15},
-		{Title: "Subtype", Width: 20},
+		{Title: "Driver", Width: 20},
 	}
 
 	t := table.New(

@@ -111,7 +111,6 @@ func (o *OpenAIModel) GetContext() string {
 
 // GetCommand calls the OpenAI API with tool calling (if supported), then falls back to text parsing if no tool call is made.
 func (o *OpenAIModel) GetCommand(prompt string) (*AIResponse, error) {
-
 	// 1) Define the tool(s) the model may call.
 	tools := []openai.ChatCompletionToolParam{
 		{
@@ -178,6 +177,35 @@ func (o *OpenAIModel) GetCommand(prompt string) (*AIResponse, error) {
 	}
 
 	return &parsedAIResponse, nil
+}
+
+func (o *OpenAIModel) GetAnswer(prompt string) (*AIResponse, error) {
+	chatCompletion, err := o.client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(fmt.Sprintf(defaultSystemMessage, o.GetCommandType())),
+			openai.SystemMessage(o.GetContext()),
+			openai.UserMessage(prompt),
+		}),
+		Model:       openai.F(o.GetChatModel()),
+		Temperature: openai.F(0.2),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error from OpenAI API: %v", err)
+	}
+
+	if len(chatCompletion.Choices) == 0 {
+		return nil, fmt.Errorf("no choices returned from OpenAI")
+	}
+
+	choice := chatCompletion.Choices[0]
+
+	response := strings.TrimSpace(choice.Message.Content)
+	responseStr := stripMarkdownFences(response)
+
+	return &AIResponse{
+		Prompt: prompt,
+		Answer: responseStr,
+	}, nil
 }
 
 // parseToolCall unmarshals the model's tool call arguments into AIResponse.

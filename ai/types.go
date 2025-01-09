@@ -32,6 +32,9 @@ type AIResponse struct {
 	// Command is the command that is suggested by the AI.
 	Command string
 
+	// Answer is the answer that is provided by the AI.
+	Answer string
+
 	// NextSteps are the suggested next steps that are provided by the AI.
 	NextSteps []string
 }

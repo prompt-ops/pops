@@ -18,6 +18,33 @@ var (
 	confirmationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("178"))
 	outputStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 	errorStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+
+	// Optional styles for history rendering
+	// historyLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
+	// historyEntryStyle = lipgloss.NewStyle().PaddingLeft(2)
+)
+
+var (
+	historyEntryStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240")).
+				Padding(0, 1).
+				Margin(1, 0)
+
+	historyContainerStyle = lipgloss.NewStyle().
+				Width(72).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240")).
+				Padding(0, 1).
+				Margin(1, 0)
+
+	historyLabelStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("212"))
+
+	historyNumberStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("213"))
 )
 
 type queryMode int
@@ -42,7 +69,10 @@ const (
 type historyEntry struct {
 	prompt string
 	cmd    string
-	// add type here: command or answer.
+
+	// Command or Answer
+	mode string
+
 	output string
 	err    error
 }
@@ -61,6 +91,7 @@ type shellModel struct {
 	spinner        spinner.Model
 	checkPassed    bool
 	mode           queryMode
+	windowWidth    int
 }
 
 func NewShellModel(conn common.Connection) shellModel {
@@ -97,7 +128,7 @@ func NewShellModel(conn common.Connection) shellModel {
 }
 
 func (m shellModel) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, m.runInitialChecks)
+	return tea.Batch(m.spinner.Tick, m.runInitialChecks, tea.EnterAltScreen)
 }
 
 func (m shellModel) runInitialChecks() tea.Msg {
@@ -124,12 +155,17 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.windowWidth = msg.Width
+		return m, nil
+
 	case checkPassedMsg:
 		m.checkPassed = true
 		m.step = stepShowContext
 		m.output = "Will be added here"
 		m.step = stepEnterPrompt
 		return m, textinput.Blink
+
 	case errMsg:
 		m.err = msg.err
 		m.step = stepDone
@@ -172,11 +208,13 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.promptInput.SetValue("")
 				}
 
-			case tea.KeyLeft:
-				m.mode = modeCommand
-
-			case tea.KeyRight:
-				m.mode = modeAnswer
+			case tea.KeyLeft, tea.KeyRight:
+				// Toggle between Command and Answer mode
+				if m.mode == modeCommand {
+					m.mode = modeAnswer
+				} else {
+					m.mode = modeCommand
+				}
 
 			case tea.KeyEnter:
 				prompt := strings.TrimSpace(m.promptInput.Value())
@@ -259,16 +297,21 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		mode := "Command"
+		if m.mode == modeAnswer {
+			mode = "Answer"
+		}
+
 		// Append the successful prompt to history
 		m.history = append(m.history, historyEntry{
 			prompt: m.promptInput.Value(),
 			cmd:    m.command,
+			mode:   mode,
 			output: m.output,
 			err:    m.err,
 		})
 		// Reset historyIndex to point to the end
 		m.historyIndex = len(m.history)
-
 		// Reset inputs for next prompt
 		m.step = stepEnterPrompt
 		m.promptInput.Reset()
@@ -277,12 +320,16 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, textinput.Blink
 
 	default:
+		// Unexpected step; exit
 		return m, tea.Quit
 	}
 }
 
 func (m shellModel) View() string {
-	historyView := m.renderHistory()
+	historyView := lipgloss.NewStyle().
+		MaxWidth(m.windowWidth-2).
+		Margin(0, 1).
+		Render(m.renderHistory())
 
 	var content string
 
@@ -327,18 +374,24 @@ func (m shellModel) viewInitialChecks() string {
 }
 
 func (m shellModel) viewEnterPrompt() string {
-	modeIndicator := "Mode: "
+	var title string
+	var modeStr string
+
 	if m.mode == modeCommand {
-		modeIndicator += commandStyle.Render("🤖")
+		title = "🤖 Request a command/query"
+		modeStr = "command/query"
 	} else {
-		modeIndicator += promptStyle.Render("💡")
+		title = "💡 Ask a question"
+		modeStr = "answer"
 	}
+
+	footer := "Use ←/→ to switch between modes (currently " + modeStr + "). Press Enter when ready."
 
 	return fmt.Sprintf(
 		"%s\n\n%s\n\n%s",
-		titleStyle.Render("📝 Enter your prompt:"),
-		modeIndicator,
+		titleStyle.Render(title),
 		promptStyle.Render(m.promptInput.View()),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(footer),
 	)
 }
 
@@ -364,14 +417,27 @@ func (m shellModel) viewRunCommand() string {
 }
 
 func (m shellModel) viewDone() string {
-	if m.err != nil {
-		return errorStyle.Render(
-			fmt.Sprintf("❌ Error: %v\nPress 'q' or 'esc' to quit.\n", m.err))
+	width := 72
+	if m.windowWidth < 72 {
+		width = m.windowWidth - 2
 	}
 
-	return outputStyle.Render(
-		fmt.Sprintf("✅ Output:\n%s\nPress 'q' or 'esc' or Ctrl+C to quit, or enter a new prompt.\n",
-			m.output))
+	outStyle := lipgloss.NewStyle().
+		Width(width).
+		MaxWidth(width)
+
+	var content string
+	if m.err != nil {
+		content = fmt.Sprintf("%v\n", m.err)
+		content = errorStyle.Render(content)
+	} else {
+		content = fmt.Sprintf("%s\n", m.output)
+		content = outputStyle.Render(content)
+	}
+
+	content = outStyle.Render(content)
+	footer := "Press 'q' or 'esc' or Ctrl+C to quit, or enter a new prompt."
+	return lipgloss.JoinVertical(lipgloss.Top, content, footer)
 }
 
 // renderHistory builds a string showing all previous prompts/outputs
@@ -389,11 +455,19 @@ func (m shellModel) renderHistory() string {
 			promptStyle.Render(h.prompt),
 		)
 
-		commandLine := lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			historyLabelStyle.Render("Command: "),
-			commandStyle.Render(h.cmd),
-		)
+		var modeLine string
+		if h.mode == "Command" {
+			modeLine = lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				historyLabelStyle.Render("Command: "),
+				commandStyle.Render(h.cmd),
+			)
+		} else {
+			modeLine = lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				historyLabelStyle.Render("Answer: "),
+			)
+		}
 
 		outputLine := lipgloss.JoinHorizontal(
 			lipgloss.Top,
@@ -403,14 +477,17 @@ func (m shellModel) renderHistory() string {
 		content := lipgloss.JoinVertical(
 			lipgloss.Left,
 			promptLine,
-			commandLine,
+			modeLine,
 			outputLine,
 		)
 
 		content = lipgloss.JoinVertical(lipgloss.Left, content)
 
-		content = historyEntryStyle.Render(content)
-		entries = append(entries, content)
+		// Render the box
+		boxed := historyContainerStyle.
+			MaxWidth(m.windowWidth - 2).
+			Render(content)
+		entries = append(entries, boxed)
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, entries...)
@@ -449,21 +526,13 @@ func (m shellModel) runCommand(command string) tea.Cmd {
 
 func (m shellModel) generateAnswer(prompt string) tea.Cmd {
 	return func() tea.Msg {
-		// This is where you’d do your logic to get an answer to the user’s query.
-		// For example, maybe your popsConnection has a method like:
-		//
-		//   answer, err := m.popsConnection.GetAnswer(prompt)
-		//
-		// In this example, we’ll just pretend we got a string:
+		answer, err := m.popsConnection.GetAnswer(prompt)
+		if err != nil {
+			return errMsg{err}
+		}
 
-		// answer, err := m.popsConnection.GetAnswer(prompt)
-		// if err != nil {
-		// 	return errMsg{err}
-		// }
-
-		// Return the answer as a new message:
 		return answerMsg{
-			answer: "Hello, world!",
+			answer,
 		}
 	}
 }

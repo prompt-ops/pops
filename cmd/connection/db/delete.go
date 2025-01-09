@@ -17,8 +17,11 @@ import (
 func newDeleteCmd() *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:   "delete",
-		Short: "Delete a db connection or all db connections",
-		Long:  "Delete a db connection or all db connections",
+		Short: "Delete a database connection or all database connections",
+		Example: `
+- **pops connection db delete my-db-connection**: Delete a database connection named 'my-db-connection'.
+- **pops connection db delete --all**: Delete all database connections.
+		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			all, err := cmd.Flags().GetBool("all")
 			if err != nil {
@@ -27,20 +30,33 @@ func newDeleteCmd() *cobra.Command {
 			}
 
 			if all {
-				deleteAllDatabaseConnections()
+				err := commonui.RunWithSpinner("Deleting all database connections...", deleteAllDatabaseConnections)
+				if err != nil {
+					color.Red("Failed to delete all database connections: %v", err)
+				}
 				return
 			} else if len(args) == 1 {
-				deleteDatabaseConnection(args[0])
+				connectionName := args[0]
+				err := commonui.RunWithSpinner(fmt.Sprintf("Deleting database connection '%s'...", connectionName), func() error {
+					return deleteDatabaseConnection(connectionName)
+				})
+				if err != nil {
+					color.Red("Failed to delete database connection '%s': %v", connectionName, err)
+				}
 				return
 			} else {
-				// Interactive delete using Bubble Tea
 				selectedConnection, err := runInteractiveDelete()
 				if err != nil {
 					color.Red("Error: %v", err)
 					return
 				}
 				if selectedConnection != "" {
-					deleteDatabaseConnection(selectedConnection)
+					err := commonui.RunWithSpinner(fmt.Sprintf("Deleting database connection '%s'...", selectedConnection), func() error {
+						return deleteDatabaseConnection(selectedConnection)
+					})
+					if err != nil {
+						color.Red("Failed to delete database connection '%s': %v", selectedConnection, err)
+					}
 				}
 			}
 		},
@@ -52,23 +68,19 @@ func newDeleteCmd() *cobra.Command {
 }
 
 // deleteAllDatabaseConnections deletes all database connections
-func deleteAllDatabaseConnections() {
-	color.Yellow("Deleting all database connections")
-	if err := config.DeleteAllConnections(); err != nil {
-		color.Red("Error deleting all database connections: %v", err)
-		return
+func deleteAllDatabaseConnections() error {
+	if err := config.DeleteAllConnectionsByType(common.ConnectionTypeDatabase); err != nil {
+		return fmt.Errorf("error deleting all database connections: %w", err)
 	}
-	color.Green("Deleted all database connections")
+	return nil
 }
 
 // deleteDatabaseConnection deletes a single database connection by name
-func deleteDatabaseConnection(name string) {
-	color.Yellow("Deleting database connection %s", name)
+func deleteDatabaseConnection(name string) error {
 	if err := config.DeleteConnectionByName(name); err != nil {
-		color.Red("Error deleting database connection: %v", err)
-		return
+		return fmt.Errorf("error deleting database connection: %w", err)
 	}
-	color.Green("Deleted database connection %s", name)
+	return nil
 }
 
 // runInteractiveDelete runs the Bubble Tea program for interactive deletion

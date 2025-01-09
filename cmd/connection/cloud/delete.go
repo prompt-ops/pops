@@ -18,7 +18,10 @@ func newDeleteCmd() *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a cloud connection or all cloud connections",
-		Long:  "Delete a cloud connection or all cloud connections",
+		Example: `
+- **pops connection cloud delete my-cloud-connection**: Delete a cloud connection named 'my-cloud-connection'.
+- **pops connection cloud delete --all**: Delete all cloud connections.
+		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			all, err := cmd.Flags().GetBool("all")
 			if err != nil {
@@ -27,20 +30,33 @@ func newDeleteCmd() *cobra.Command {
 			}
 
 			if all {
-				deleteAllCloudConnections()
+				err := commonui.RunWithSpinner("Deleting all cloud connections...", deleteAllCloudConnections)
+				if err != nil {
+					color.Red("Failed to delete all cloud connections: %v", err)
+				}
 				return
 			} else if len(args) == 1 {
-				deleteCloudConnection(args[0])
+				connectionName := args[0]
+				err := commonui.RunWithSpinner(fmt.Sprintf("Deleting cloud connection '%s'...", connectionName), func() error {
+					return deleteCloudConnection(connectionName)
+				})
+				if err != nil {
+					color.Red("Failed to delete cloud connection '%s': %v", connectionName, err)
+				}
 				return
 			} else {
-				// Interactive delete using Bubble Tea
 				selectedConnection, err := runInteractiveDelete()
 				if err != nil {
 					color.Red("Error: %v", err)
 					return
 				}
 				if selectedConnection != "" {
-					deleteCloudConnection(selectedConnection)
+					err := commonui.RunWithSpinner(fmt.Sprintf("Deleting cloud connection '%s'...", selectedConnection), func() error {
+						return deleteCloudConnection(selectedConnection)
+					})
+					if err != nil {
+						color.Red("Failed to delete cloud connection '%s': %v", selectedConnection, err)
+					}
 				}
 			}
 		},
@@ -51,24 +67,20 @@ func newDeleteCmd() *cobra.Command {
 	return deleteCmd
 }
 
-// deleteAllCloudConnections deletes all connections
-func deleteAllCloudConnections() {
-	color.Yellow("Deleting all cloud connections")
-	if err := config.DeleteAllConnections(); err != nil {
-		color.Red("Error deleting all cloud connections: %v", err)
-		return
+// deleteAllCloudConnections deletes all cloud connections
+func deleteAllCloudConnections() error {
+	if err := config.DeleteAllConnectionsByType(common.ConnectionTypeCloud); err != nil {
+		return fmt.Errorf("error deleting all cloud connections: %w", err)
 	}
-	color.Green("Deleted all cloud connections")
+	return nil
 }
 
 // deleteCloudConnection deletes a single cloud connection by name
-func deleteCloudConnection(name string) {
-	color.Yellow("Deleting connection %s", name)
+func deleteCloudConnection(name string) error {
 	if err := config.DeleteConnectionByName(name); err != nil {
-		color.Red("Error deleting connection: %v", err)
-		return
+		return fmt.Errorf("error deleting cloud connection: %w", err)
 	}
-	color.Green("Deleted connection %s", name)
+	return nil
 }
 
 // runInteractiveDelete runs the Bubble Tea program for interactive deletion
@@ -86,7 +98,7 @@ func runInteractiveDelete() (string, error) {
 	columns := []table.Column{
 		{Title: "Name", Width: 25},
 		{Title: "Type", Width: 15},
-		{Title: "Subtype", Width: 20},
+		{Title: "Driver", Width: 20},
 	}
 
 	t := table.New(

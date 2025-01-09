@@ -368,6 +368,28 @@ func (p *PostgreSQLConnection) GetCommand(prompt string) (string, error) {
 	return cmd.Command, nil
 }
 
+func (p *PostgreSQLConnection) GetAnswer(prompt string) (string, error) {
+	if p.TablesAndColumns == nil {
+		// Call SetContext to populate the tables and columns.
+		// This is a fallback in case SetContext is not called.
+		if err := p.SetContext(); err != nil {
+			return "", fmt.Errorf("Error getting answer: %v", err)
+		}
+	}
+
+	aiModel, err := ai.NewOpenAIModel(p.CommandType(), p.GetContext())
+	if err != nil {
+		return "", fmt.Errorf("failed to create AI model: %v", err)
+	}
+
+	answer, err := aiModel.GetAnswer(prompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to get answer from AI: %v", err)
+	}
+
+	return answer.Answer, nil
+}
+
 func (p *PostgreSQLConnection) CommandType() string {
 	return "psql"
 }
