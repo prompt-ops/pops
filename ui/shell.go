@@ -11,16 +11,6 @@ import (
 	"github.com/prompt-ops/pops/common"
 )
 
-const (
-	stepInitialChecks = iota
-	stepShowContext   // New step for displaying context
-	stepEnterPrompt
-	stepGenerateCommand
-	stepConfirmRun
-	stepRunCommand
-	stepDone
-)
-
 var (
 	titleStyle        = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205"))
 	promptStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
@@ -30,10 +20,29 @@ var (
 	errorStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 )
 
+type queryMode int
+
+const (
+	modeCommand queryMode = iota
+	modeAnswer
+)
+
+const (
+	stepInitialChecks = iota
+	stepShowContext   // New step for displaying context
+	stepEnterPrompt
+	stepGenerateCommand
+	stepGetAnswer
+	stepConfirmRun
+	stepRunCommand
+	stepDone
+)
+
 // historyEntry stores a single cycle of user prompt and output
 type historyEntry struct {
 	prompt string
 	cmd    string
+	// add type here: command or answer.
 	output string
 	err    error
 }
@@ -51,6 +60,7 @@ type shellModel struct {
 	popsConnection common.ConnectionInterface
 	spinner        spinner.Model
 	checkPassed    bool
+	mode           queryMode
 }
 
 func NewShellModel(conn common.Connection) shellModel {
@@ -82,6 +92,7 @@ func NewShellModel(conn common.Connection) shellModel {
 		connection:     conn,
 		popsConnection: popsConn,
 		spinner:        sp,
+		mode:           modeCommand,
 	}
 }
 
@@ -141,15 +152,15 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			switch msg.String() {
-			case "up":
+			switch msg.Type {
+			case tea.KeyUp:
 				if m.historyIndex > 0 && len(m.history) > 0 {
 					m.historyIndex--
 					previousPrompt := m.history[m.historyIndex].prompt
 					m.promptInput.SetValue(previousPrompt)
 					m.promptInput.CursorEnd()
 				}
-			case "down":
+			case tea.KeyDown:
 				if m.historyIndex < len(m.history)-1 {
 					m.historyIndex++
 					nextPrompt := m.history[m.historyIndex].prompt
@@ -160,17 +171,29 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.historyIndex = len(m.history)
 					m.promptInput.SetValue("")
 				}
-			case "enter":
+
+			case tea.KeyLeft:
+				m.mode = modeCommand
+
+			case tea.KeyRight:
+				m.mode = modeAnswer
+
+			case tea.KeyEnter:
 				prompt := strings.TrimSpace(m.promptInput.Value())
 				if prompt != "" {
-					m.step = stepGenerateCommand
-					return m, m.generateCommand(prompt)
+					if m.mode == modeCommand {
+						m.step = stepGenerateCommand
+						return m, m.generateCommand(prompt)
+					} else {
+						m.step = stepGetAnswer
+						return m, m.generateAnswer(prompt)
+					}
 				}
-			case "q", "esc", "ctrl+c":
+
+			case tea.KeyCtrlC, tea.KeyEsc:
 				return m, tea.Quit
 			}
 		}
-
 		return m, cmd
 
 	case stepGenerateCommand:
@@ -179,6 +202,15 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.step = stepConfirmRun
 			m.confirmInput.Focus()
 			return m, textinput.Blink
+		}
+		return m, nil
+
+	case stepGetAnswer:
+		// If we successfully got an answer, we’ll receive an `answerMsg`.
+		if ansMsg, ok := msg.(answerMsg); ok {
+			m.output = ansMsg.answer
+			m.step = stepDone
+			return m, nil
 		}
 		return m, nil
 
@@ -250,51 +282,96 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m shellModel) View() string {
-	historyView := m.renderHistory() + "\n"
+	historyView := m.renderHistory()
+
+	var content string
 
 	switch m.step {
 	case stepInitialChecks:
-		if m.checkPassed {
-			return historyView + outputStyle.Render("✅ Authentication passed!\n\n")
-		}
-		return historyView + fmt.Sprintf(
-			"%s %s",
-			titleStyle.Render("🔄 Checking authentication..."),
-			m.spinner.View(),
-		)
-	case stepShowContext:
-		// This step is now handled in the Update method
-		return historyView + outputStyle.Render("📄 Displaying Database Context...\n\n"+m.output+"\n")
+		content = m.viewInitialChecks()
 
 	case stepEnterPrompt:
-		return historyView + fmt.Sprintf(
-			"%s\n\n%s",
-			titleStyle.Render("📝 Enter your prompt:"),
-			promptStyle.Render(m.promptInput.View()),
-		)
+		content = m.viewEnterPrompt()
+
 	case stepGenerateCommand:
-		return historyView + titleStyle.Render("🤖 Generating command...")
+		content = m.viewGenerateCommand()
+
+	case stepGetAnswer:
+		content = m.viewGetAnswer()
+
 	case stepConfirmRun:
-		return historyView + fmt.Sprintf(
-			"%s\n%s\n%s",
-			commandStyle.Render(fmt.Sprintf("💡 Command: %s", m.command)),
-			confirmationStyle.Render("Run this command? (Yes/No)"),
-			m.confirmInput.View(),
-		)
+		content = m.viewConfirmRun()
+
 	case stepRunCommand:
-		return historyView + titleStyle.Render("🏃 Running command...")
+		content = m.viewRunCommand()
+
 	case stepDone:
-		if m.err != nil {
-			return historyView + errorStyle.Render(fmt.Sprintf("❌ Error: %v\nPress 'q' or 'esc' to quit.\n", m.err))
-		}
-		return historyView + outputStyle.Render(
-			fmt.Sprintf("✅ Output:\n%s\nPress 'q' or 'esc' or Ctrl+C to quit, or enter a new prompt.\n",
-				m.output,
-			),
-		)
+		content = m.viewDone()
+
 	default:
-		return historyView
+		content = ""
 	}
+
+	return lipgloss.JoinVertical(lipgloss.Top, historyView, content)
+}
+
+func (m shellModel) viewInitialChecks() string {
+	if m.checkPassed {
+		return outputStyle.Render("✅ Authentication passed!\n\n")
+	}
+	return fmt.Sprintf(
+		"%s %s",
+		titleStyle.Render("🔄 Checking authentication..."),
+		m.spinner.View(),
+	)
+}
+
+func (m shellModel) viewEnterPrompt() string {
+	modeIndicator := "Mode: "
+	if m.mode == modeCommand {
+		modeIndicator += commandStyle.Render("🤖")
+	} else {
+		modeIndicator += promptStyle.Render("💡")
+	}
+
+	return fmt.Sprintf(
+		"%s\n\n%s\n\n%s",
+		titleStyle.Render("📝 Enter your prompt:"),
+		modeIndicator,
+		promptStyle.Render(m.promptInput.View()),
+	)
+}
+
+func (m shellModel) viewGenerateCommand() string {
+	return titleStyle.Render("🤖 Generating command...")
+}
+
+func (m shellModel) viewGetAnswer() string {
+	return titleStyle.Render("🤔 Getting your answer...")
+}
+
+func (m shellModel) viewConfirmRun() string {
+	return fmt.Sprintf(
+		"%s\n%s\n%s",
+		commandStyle.Render(fmt.Sprintf("💡 Command: %s", m.command)),
+		confirmationStyle.Render("Run this command? (Yes/No)"),
+		m.confirmInput.View(),
+	)
+}
+
+func (m shellModel) viewRunCommand() string {
+	return titleStyle.Render("🏃 Running command...")
+}
+
+func (m shellModel) viewDone() string {
+	if m.err != nil {
+		return errorStyle.Render(
+			fmt.Sprintf("❌ Error: %v\nPress 'q' or 'esc' to quit.\n", m.err))
+	}
+
+	return outputStyle.Render(
+		fmt.Sprintf("✅ Output:\n%s\nPress 'q' or 'esc' or Ctrl+C to quit, or enter a new prompt.\n",
+			m.output))
 }
 
 // renderHistory builds a string showing all previous prompts/outputs
@@ -302,17 +379,41 @@ func (m shellModel) renderHistory() string {
 	if len(m.history) == 0 {
 		return ""
 	}
-	var out string
-	for i, h := range m.history {
-		out += fmt.Sprintf(
-			"%d) Prompt: %s\n   Command: %s\n   Output:\n%s\n",
-			i+1,
+
+	var entries []string
+	for _, h := range m.history {
+		// Build lines with label + content
+		promptLine := lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			historyLabelStyle.Render("Prompt: "),
 			promptStyle.Render(h.prompt),
+		)
+
+		commandLine := lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			historyLabelStyle.Render("Command: "),
 			commandStyle.Render(h.cmd),
+		)
+
+		outputLine := lipgloss.JoinHorizontal(
+			lipgloss.Top,
 			outputStyle.Render(h.output),
 		)
+
+		content := lipgloss.JoinVertical(
+			lipgloss.Left,
+			promptLine,
+			commandLine,
+			outputLine,
+		)
+
+		content = lipgloss.JoinVertical(lipgloss.Left, content)
+
+		content = historyEntryStyle.Render(content)
+		entries = append(entries, content)
 	}
-	return out
+
+	return lipgloss.JoinVertical(lipgloss.Left, entries...)
 }
 
 func (m shellModel) generateCommand(prompt string) tea.Cmd {
@@ -342,6 +443,27 @@ func (m shellModel) runCommand(command string) tea.Cmd {
 
 		return outputMsg{
 			output: outStr,
+		}
+	}
+}
+
+func (m shellModel) generateAnswer(prompt string) tea.Cmd {
+	return func() tea.Msg {
+		// This is where you’d do your logic to get an answer to the user’s query.
+		// For example, maybe your popsConnection has a method like:
+		//
+		//   answer, err := m.popsConnection.GetAnswer(prompt)
+		//
+		// In this example, we’ll just pretend we got a string:
+
+		// answer, err := m.popsConnection.GetAnswer(prompt)
+		// if err != nil {
+		// 	return errMsg{err}
+		// }
+
+		// Return the answer as a new message:
+		return answerMsg{
+			answer: "Hello, world!",
 		}
 	}
 }

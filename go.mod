@@ -9,7 +9,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/lib/pq v1.10.9
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/openai/openai-go v0.1.0-alpha.43
+	github.com/openai/openai-go v0.1.0-alpha.44
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
 )

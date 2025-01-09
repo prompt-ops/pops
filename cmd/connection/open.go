@@ -22,34 +22,25 @@ func newOpenCmd() *cobra.Command {
 		Long:  "Open a connection",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 1 {
-				// Check if connection exists
+				// Non-interactive path: open the shell directly for that connection
 				conn, err := config.GetConnectionByName(args[0])
 				if err != nil {
 					color.Red("Error getting connection: %v", err)
 					return
 				}
-				// Open the shell UI
-				if err := openShellUI(conn); err != nil {
+				// Just run the shell
+				shell := ui.NewShellModel(conn)
+				p := tea.NewProgram(shell)
+				if _, err := p.Run(); err != nil {
 					color.Red("Error opening shell UI: %v", err)
 				}
 			} else {
-				// Interactive open using Bubble Tea
-				selectedConnection, err := runInteractiveOpen()
-				if err != nil {
+				// Interactive path: run the root model with the picking table
+				root := NewOpenRootModel()
+				p := tea.NewProgram(root)
+				if _, err := p.Run(); err != nil {
 					color.Red("Error: %v", err)
 					return
-				}
-				if selectedConnection != "" {
-					// Check if connection exists
-					conn, err := config.GetConnectionByName(selectedConnection)
-					if err != nil {
-						color.Red("Error getting connection: %v", err)
-						return
-					}
-					// Open the shell UI
-					if err := openShellUI(conn); err != nil {
-						color.Red("Error opening shell UI: %v", err)
-					}
 				}
 			}
 		},
@@ -58,13 +49,46 @@ func newOpenCmd() *cobra.Command {
 	return openCmd
 }
 
-// runInteractiveOpen runs the Bubble Tea program for interactive open
-func runInteractiveOpen() (string, error) {
+// The root model for "open"
+type openRootModel struct {
+	step       openStep
+	tableModel tableModel
+	shellModel tea.Model // We'll store it here once we create it
+}
+
+// openStep enumerates which sub-UI is active.
+type openStep int
+
+const (
+	stepPick openStep = iota
+	stepShell
+)
+
+// connectionSelectedMsg signals that the user picked a connection
+type connectionSelectedMsg struct {
+	Conn common.Connection
+}
+
+// tableModel is your existing table-based model used to pick a connection.
+// In your code, this is something like commonui.NewTableModel(...)
+// but you need it to send a message when the user selects a row.
+type tableModel interface {
+	tea.Model
+	Selected() string
+}
+
+// NewOpenRootModel creates the root model in "pick" mode
+func NewOpenRootModel() *openRootModel {
+	// Build the table
 	connections, err := config.GetAllConnections()
 	if err != nil {
-		return "", fmt.Errorf("getting connections: %w", err)
+		// In a real app, handle this more gracefully
+		color.Red("Error getting connections: %v", err)
+		// Return an empty model or handle error
+		return &openRootModel{}
 	}
 
+	// Prepare rows
 	items := make([]table.Row, len(connections))
 	for i, conn := range connections {
 		items[i] = table.Row{conn.Name, conn.Type.GetMainType(), conn.Type.GetSubtype()}
@@ -83,6 +107,7 @@ func runInteractiveOpen() (string, error) {
 		table.WithHeight(10),
 	)
 
+	// Style the table
 	s := table.DefaultStyles()
 	s.Header = s.Header.
 		BorderStyle(lipgloss.NormalBorder()).
@@ -95,22 +120,86 @@ func runInteractiveOpen() (string, error) {
 		Bold(false)
 	t.SetStyles(s)
 
-	openTableModel := commonui.NewTableModel(t, nil)
+	onSelect := func(selected string) tea.Msg {
+		// This callback fires when the user confirms the selection.
+		// We’ll look up the connection and send a connectionSelectedMsg
+		conn, err := config.GetConnectionByName(selected)
+		if err != nil {
+			return func() tea.Msg {
+				return fmt.Errorf("error getting connection %s: %w", selected, err)
+			}
+		}
 
-	p := tea.NewProgram(openTableModel)
-	if _, err := p.Run(); err != nil {
-		return "", fmt.Errorf("running Bubble Tea program: %w", err)
+		return func() tea.Msg {
+			return connectionSelectedMsg{
+				Conn: conn,
+			}
+		}
 	}
 
-	return openTableModel.Selected(), nil
+	// Construct your table-based model (from your commonui package)
+	tblModel := commonui.NewTableModel(t, onSelect)
+
+	return &openRootModel{
+		step:       stepPick,
+		tableModel: tblModel,
+	}
 }
 
-// openShellUI initializes and runs the shell UI with the selected connection
-func openShellUI(conn common.Connection) error {
-	shell := ui.NewShellModel(conn)
-	p := tea.NewProgram(shell)
-	if _, err := p.Run(); err != nil {
-		return fmt.Errorf("failed to start shell UI: %w", err)
+// Init initializes whichever sub-UI we’re starting with
+func (m *openRootModel) Init() tea.Cmd {
+	// Start with the table model
+	return m.tableModel.Init()
+}
+
+// Update handles messages.
+// If we get a `connectionSelectedMsg`, we switch to the shell.
+func (m *openRootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+
+	case connectionSelectedMsg:
+		fmt.Println("Selected connection:", msg.Conn.Name)
+
+		// The user picked a connection from the table. Build the shell model:
+		m.shellModel = ui.NewShellModel(msg.Conn)
+		m.step = stepShell
+		// Return the shell model as the new top-level model with its Init.
+		return m.shellModel, m.shellModel.Init()
+
+	// If the table tried to look up the connection and failed
+	case error:
+		color.Red("Error: %v", msg)
+		// You could handle it, or just stay in the table.
+
 	}
-	return nil
+
+	// If we’re not transitioning, update the current sub-UI
+	if m.step == stepPick {
+		var cmd tea.Cmd
+		updatedTable, cmd := m.tableModel.Update(msg)
+		// Because tableModel is an interface, we need to store it back:
+		m.tableModel = updatedTable.(tableModel)
+		return m, cmd
+	}
+
+	// If we’re in shell mode, pass the message to the shell
+	if m.step == stepShell && m.shellModel != nil {
+		var cmd tea.Cmd
+		m.shellModel, cmd = m.shellModel.Update(msg)
+		return m, cmd
+	}
+
+	// Default fallback
+	return m, nil
+}
+
+// View renders whichever sub-UI we’re using
+func (m *openRootModel) View() string {
+	if m.step == stepPick {
+		return m.tableModel.View()
+	}
+	if m.step == stepShell && m.shellModel != nil {
+		return m.shellModel.View()
+	}
+	return "No view"
 }
