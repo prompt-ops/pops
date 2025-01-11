@@ -33,8 +33,5 @@ Thumbs.db
 .env
 .env.local
 
-# `pops` binary
-pops
-
 # dist directory
 dist/

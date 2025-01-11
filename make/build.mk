@@ -13,5 +13,5 @@ build:
 	@echo "GOPATH: $(GOPATH)"
 	@echo "GO111MODULE: $(GO111MODULE)"
 	@echo "CGO_ENABLED: $(CGO_ENABLED)"
-	@go build -ldflags="-s -w" -o dist/pops-$(GOOS)-$(GOARCH)
+	@go build -ldflags="-s -w" -o dist/pops-$(GOOS)-$(GOARCH) cmd/pops/main.go
 	@echo "Build complete."
