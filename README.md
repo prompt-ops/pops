@@ -1,98 +1,82 @@
 # 🤖 Prompt-Ops
 
-**PromptOps** is a CLI tool that lets you interact with your infrastructure—like Kubernetes clusters, databases, and cloud environments—using natural language. Instead of memorizing commands and juggling multiple tools, you can simply “ask” for what you need in plain English, and PromptOps will translate your request into the right kubectl commands, SQL queries, or cloud CLI instructions. With built-in interactive flows, suggested next steps, and support for various connection types, PromptOps streamlines operations, saves time, and makes managing complex systems more intuitive.
+**Prompt-Ops** is a CLI tool that makes managing your infrastructure—like Kubernetes clusters, databases, and cloud environments—effortless and intuitive. By translating natural language into precise commands, it eliminates the need to memorize complex syntax or juggle multiple tools.
 
-## 🛠️ Local Setup
+With features like interactive flows, intelligent suggestions, and broad connection support, Prompt-Ops streamlines operations, saves time, and makes managing complex systems more approachable.
 
-- `export GO111MODULE=on && go mod tidy && go build -ldflags="-s -w" -o pops && ./pops --help`
+## 🚀 Key Features
 
-## 🎯 Available Commands
+- 🔍 **Natural Language Commands**: Interact with your services using plain English.
+- ⚡ **Interactive Workflows**: Step-by-step prompts for setup and operations.
+- 🌐 **Broad Compatibility**: Supports Kubernetes, databases, cloud services, and more.
+- 🔮 **AI-Powered Suggestions**: Get guided next steps and smart command completions.
 
-### 🌍 General Connection Management
+## 🛠️ Setup
 
-- `pops connection create`: Interactive creation of a new connection (asks for type).
-- `pops connection list`: Lists all connections.
-- `pops connection open`: Interactive selection and opening of a connection.
-- `pops connection open [conn-name]`: Opens a specific connection by name.
-- `pops connection delete`: Interactive selection and deletion of a connection.
-- `pops connection delete [conn-name]`: Deletes a specific connection by name.
-- `pops connection types`: Lists all available connection types (e.g., cloud, kubernetes, db).
+To get started locally:
 
-### 🌥️ Cloud Connections
+```bash
+make install
+```
 
-- `pops connection cloud create`: Interactive creation of a cloud connection.
-- `pops connection cloud list`: Lists all cloud connections.
-- `pops connection cloud open`: Interactive selection and opening of a cloud connection.
-- `pops connection cloud open [conn-name]`: Opens a specific cloud connection.
-- `pops connection cloud delete`: Interactive selection and deletion of a cloud connection.
-- `pops connection cloud delete [conn-name]`: Deletes a specific cloud connection.
-- `pops connection cloud types`: Lists available cloud providers.
+## 📜 Available Commands
 
-### 🚆 Kubernetes Connections
+### 🌍 General
 
-- `pops connection kubernetes create`: Interactive creation of a Kubernetes connection.
-- `pops connection kubernetes list`: Lists all Kubernetes connections.
-- `pops connection kubernetes open`: Interactive selection and opening of a Kubernetes connection.
-- `pops connection kubernetes open [conn-name]`: Opens a specific Kubernetes connection.
-- `pops connection kubernetes delete`: Interactive selection and deletion of a Kubernetes connection.
-- `pops connection kubernetes delete [conn-name]`: Deletes a specific Kubernetes connection.
-- `pops connection kubernetes types`: Lists available Kubernetes connection types.
+- `pops connection create`: Create a new connection interactively.
+- `pops connection list`: List all connections.
+- `pops connection open [conn-name]`: Open a specific connection.
+- `pops connection delete [conn-name]`: Delete a specific connection.
+- `pops connection types`: Show available connection types.
 
-### 💿 Database Connections
+### 🌥️ Cloud
 
-- `pops connection db create`: Interactive creation of a database connection.
-- `pops connection db list`: Lists all database connections.
-- `pops connection db open`: Interactive selection and opening of a database connection.
-- `pops connection db open [conn-name]`: Opens a specific database connection.
-- `pops connection db delete`: Interactive selection and deletion of a database connection.
-- `pops connection db delete [conn-name]`: Deletes a specific database connection.
-- `pops connection db types`: Lists available database connection types.
+- `pops connection cloud create`: Create a cloud connection interactively.
+- `pops connection cloud list`: List all cloud connections.
+- `pops connection cloud open [conn-name]`: Open a specific cloud connection.
+- `pops connection cloud delete [conn-name]`: Delete a specific cloud connection.
+- `pops connection cloud types`: Show supported cloud providers.
 
-### 🔮 Coming Soon (Commands)
+### 🚆 Kubernetes
 
-- `pops connection delete`
-- `pops connection mq` or `pops connection queue` for Message Queues.
-- `pops connection storage` for Object Storage.
-- `pops connection monitoring` or `pops connection logging` for Monitoring & Logging.
-- `pops connection cicd` for CI/CD Pipelines.
-- `pops connection cache` or `pops connection kv` for Cache & Key-Value Stores.
-- `pops session` to keep track of all prompts and commands...
+- `pops connection kubernetes create`: Create a Kubernetes connection.
+- `pops connection kubernetes list`: List Kubernetes connections.
+- `pops connection kubernetes open [conn-name]`: Open a specific Kubernetes connection.
+- `pops connection kubernetes delete [conn-name]`: Delete a Kubernetes connection.
 
-## 〄 Connection Types
+### 💿 Database
 
-### ⏚ Available Now
+- `pops connection db create`: Create a database connection.
+- `pops connection db list`: List database connections.
+- `pops connection db open [conn-name]`: Open a specific database connection.
+- `pops connection db delete [conn-name]`: Delete a database connection.
+- `pops connection db types`: Show supported database types.
 
-- Kubernetes
-- DB
+## 〄 Supported Connection Types
+
+### Available Now
+
+- **Kubernetes**
+- **Databases**:
   - PostgreSQL
   - MySQL
   - MongoDB
-- Cloud
+- **Cloud**:
   - Azure
 
-### 🔮 Coming Soon (Types)
+### Coming Soon
 
-- Cloud
-  - AWS
-  - GCP
-- Message Queues
-  - Kafka
-  - RabbitMQ
-  - AWS SQS
-- Object Storage
-  - AWS S3
-  - GCP Storage
-  - Azure Blob Storage
-- Monitoring & Logging
-  - Prometheus
-  - Elasticsearch
-  - Datadog
-  - Splunk
-- CI/CD Pipelines
-  - Jenkins
-  - GitLab CI
-  - GitHub Actions
-  - CircleCI
-- Cache & Key-Value Stores
-  - Redis
-  - Memcached
+- **Cloud Providers**: AWS, GCP
+- **Message Queues**: Kafka, RabbitMQ, AWS SQS
+- **Object Storage**: AWS S3, Azure Blob, GCP Storage
+- **Monitoring & Logging**: Prometheus, Elasticsearch, Datadog, Splunk
+- **CI/CD**: Jenkins, GitLab CI, GitHub Actions, CircleCI
+- **Cache**: Redis, Memcached
+
+## 🎯 Planned Features
+
+- **Message Queues**: pops connection mq for Kafka, RabbitMQ.
+- **Storage**: pops connection storage for object storage (e.g., S3, Azure Blob).
+- **Monitoring**: pops connection monitoring for logging and metrics (e.g., Prometheus).
+- **Sessions**: Keep track of prompts, commands, and history.
+- **CI/CD Pipelines**: Integrations with popular tools like Jenkins and GitHub Actions.
