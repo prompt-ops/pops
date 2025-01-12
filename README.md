@@ -11,9 +11,30 @@ With features like interactive flows, intelligent suggestions, and broad connect
 - 🌐 **Broad Compatibility**: Supports Kubernetes, databases, cloud services, and more.
 - 🔮 **AI-Powered Suggestions**: Get guided next steps and smart command completions.
 
-## 🛠️ Setup
+## 🛠️ Installation
 
-To get started locally:
+You can install **Prompt-Ops** using one of the following methods:
+
+### Using Curl
+
+Run the installation script using **curl**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/prompt-ops/pops/main/scripts/install.sh | bash
+```
+
+### Using Homebrew
+
+You can also install Prompt-Ops via Homebrew:
+
+```bash
+brew tap prompt-ops/homebrew-tap
+brew install pops
+```
+
+### Using Make
+
+To install locally using `make`:
 
 ```bash
 make install
