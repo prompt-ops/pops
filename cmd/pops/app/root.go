@@ -14,7 +14,10 @@ func NewRootCommand() *cobra.Command {
 		Short: "Prompt-Ops manages your infrastructure using natural language.",
 	}
 
-	// Add subcommands
+	// `pops version` command
+	cmd.AddCommand(NewVersionCmd)
+
+	// `pops connection` commands
 	cmd.AddCommand(connection.NewConnectionCommand())
 
 	return cmd

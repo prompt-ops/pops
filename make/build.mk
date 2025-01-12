@@ -4,6 +4,7 @@ GOPATH := $(shell go env GOPATH)
 
 GO111MODULE ?= on
 CGO_ENABLED ?= 0
+VERSION ?= dev
 
 .PHONY: build
 build:
@@ -13,5 +14,5 @@ build:
 	@echo "GOPATH: $(GOPATH)"
 	@echo "GO111MODULE: $(GO111MODULE)"
 	@echo "CGO_ENABLED: $(CGO_ENABLED)"
-	@go build -ldflags="-s -w" -o dist/pops-$(GOOS)-$(GOARCH) cmd/pops/main.go
+	@go build -ldflags="-s -w -X github.com/prompt-ops/pops/cmd/pops/app.version=$(VERSION)" -o dist/pops-$(GOOS)-$(GOARCH) cmd/pops/main.go
 	@echo "Build complete."

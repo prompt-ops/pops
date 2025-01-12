@@ -34,10 +34,12 @@ jobs:
         run: go test -v ./...
 
       - name: Build binaries
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
-          echo "Building for GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}"
+          echo "Building for GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} with VERSION=${VERSION}"
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-          make build
+          make build VERSION=${VERSION}
 
       - name: Rename Windows binaries with .exe
         if: matrix.goos == 'windows'
