@@ -1,0 +1,71 @@
+name: Generate and Publish CLI Docs on Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write 
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+          cache: false
+
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Generate CLI Docs
+        run: |
+          mkdir -p release/docs
+          make generate-cli-docs OUTPUT_PATH=release/docs/
+
+      - name: Checkout Docs Repository
+        uses: actions/checkout@v4
+        with:
+          repository: prompt-ops/docs
+          path: prompt-ops/docs
+
+      - name: Copy Generated Docs
+        run: |
+          mkdir -p docs/content/en/cli
+          cp -R release/docs/* docs/content/en/cli/
+
+      - name: Commit and Push Changes
+        run: |
+          cd docs
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/en/cli
+          git commit -m "chore: Update CLI documentation for release ${{ github.event.release.tag_name }}"
+          git push origin HEAD:automated-docs-update-${{ github.event.release.tag_name }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.POPS_GITHUB_OPS_PAT }}
+          commit-message: Update CLI documentation for release ${{ github.event.release.tag_name }}
+          title: "📄 Update CLI Documentation for Release ${{ github.event.release.tag_name }}"
+          body: |
+            This PR updates the CLI documentation to reflect the changes in release `${{ github.event.release.tag_name }}`.
+
+            ### Changes
+            - Updated CLI commands and usage examples.
+            - Added new features introduced in this release.
+
+            ### How to Test
+            - Verify the generated documentation in the [docs repository](https://github.com/prompt-ops/docs).
+          base: main
+          branch-suffix: automated-docs-update
+          delete-branch: true
