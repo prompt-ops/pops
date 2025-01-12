@@ -1,0 +1,73 @@
+name: Generate and Publish CLI Docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+
+    env:
+      TAG_NAME: ${{ github.event.release.tag_name || 'edge' }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          path: pops
+
+      - name: Checkout Docs Repository
+        uses: actions/checkout@v4
+        with:
+          repository: prompt-ops/docs
+          path: docs
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+          cache: false
+
+      - name: Install dependencies
+        run: go mod tidy
+        working-directory: pops
+
+      - name: Generate CLI Docs
+        run: |
+          mkdir -p release/docs
+          make generate-cli-docs OUTPUT_PATH=release/docs/
+        working-directory: pops
+
+      - name: Copy Generated Docs
+        run: |
+          mkdir -p docs/content/en/cli
+          cp -R pops/release/docs/* docs/content/en/cli/
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.POPS_GITHUB_OPS_PAT }}
+          path: docs
+          committer: pops-ci-bot <pops-ci-bot@users.noreply.github.com>
+          author: pops-ci-bot <pops-ci-bot@users.noreply.github.com>
+          signoff: true
+          commit-message: Update CLI documentation for ${{ env.TAG_NAME }}
+          title: "📄 Update CLI Documentation for ${{ env.TAG_NAME }}"
+          body: |
+            This PR updates the CLI documentation to reflect the changes in `${{ env.TAG_NAME }}`.
+
+            ### Changes
+            - Updated CLI commands and usage examples.
+            - Added new features introduced in this release.
+
+            ### How to Test
+            - Verify the generated documentation in the [docs repository](https://github.com/prompt-ops/docs).
+          base: main
+          branch: automated-docs-update/patch-${{ github.sha }}
+          delete-branch: true
