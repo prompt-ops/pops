@@ -1,0 +1,105 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+
+    env:
+      TAG_NAME: ${{ github.event.release.tag_name || 'edge' }}
+
+    steps:
+      - name: Checkout the pops repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download & compute checksums
+        id: checksums
+        run: |
+          VERSION=${{ env.TAG_NAME }}
+
+          # Download each artifact
+          curl -L -o pops-darwin-amd64 \
+            https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-darwin-amd64
+          curl -L -o pops-darwin-arm64 \
+            https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-darwin-arm64
+          curl -L -o pops-linux-amd64 \
+            https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-linux-amd64
+          curl -L -o pops-linux-arm64 \
+            https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-linux-arm64
+
+          # Compute checksums
+          DARWIN_AMD64_SHA=$(sha256sum pops-darwin-amd64 | cut -d ' ' -f1)
+          DARWIN_ARM64_SHA=$(sha256sum pops-darwin-arm64 | cut -d ' ' -f1)
+          LINUX_AMD64_SHA=$(sha256sum pops-linux-amd64 | cut -d ' ' -f1)
+          LINUX_ARM64_SHA=$(sha256sum pops-linux-arm64 | cut -d ' ' -f1)
+
+          echo "darwin_amd64_sha=${DARWIN_AMD64_SHA}" >> $GITHUB_OUTPUT
+          echo "darwin_arm64_sha=${DARWIN_ARM64_SHA}" >> $GITHUB_OUTPUT
+          echo "linux_amd64_sha=${LINUX_AMD64_SHA}" >> $GITHUB_OUTPUT
+          echo "linux_arm64_sha=${LINUX_ARM64_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Checkout Homebrew Tap
+        uses: actions/checkout@v4
+        with:
+          repository: prompt-ops/homebrew-tap
+          token: ${{ secrets.POPS_GITHUB_OPS_PAT }}
+          ref: main
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          VERSION=${{ env.TAG_NAME }}
+          DARWIN_AMD64_SHA=${{ steps.checksums.outputs.darwin_amd64_sha }}
+          DARWIN_ARM64_SHA=${{ steps.checksums.outputs.darwin_arm64_sha }}
+          LINUX_AMD64_SHA=${{ steps.checksums.outputs.linux_amd64_sha }}
+          LINUX_ARM64_SHA=${{ steps.checksums.outputs.linux_arm64_sha }}
+
+          cd homebrew-tap
+          FORMULA_FILE="Formula/pops.rb"
+
+          # Use sed to replace version, URLs, and SHAs in the Ruby formula
+          sed -i.bak "s|^  version \".*\"|  version \"${VERSION}\"|" $FORMULA_FILE
+
+          # Darwin Intel
+          sed -i.bak "s|^      url \"https://github.com/prompt-ops/pops/releases/download/.*pops-darwin-amd64\"|      url \"https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-darwin-amd64\"|" $FORMULA_FILE
+          sed -i.bak "s|^      sha256 \".*\"|      sha256 \"${DARWIN_AMD64_SHA}\"|" $FORMULA_FILE
+
+          # Darwin ARM
+          sed -i.bak "s|^      url \"https://github.com/prompt-ops/pops/releases/download/.*pops-darwin-arm64\"|      url \"https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-darwin-arm64\"|" $FORMULA_FILE
+          sed -i.bak "s|^      sha256 \".*\"|      sha256 \"${DARWIN_ARM64_SHA}\"|" $FORMULA_FILE
+
+          # Linux Intel
+          sed -i.bak "s|^      url \"https://github.com/prompt-ops/pops/releases/download/.*pops-linux-amd64\"|      url \"https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-linux-amd64\"|" $FORMULA_FILE
+          sed -i.bak "s|^      sha256 \".*\"|      sha256 \"${LINUX_AMD64_SHA}\"|" $FORMULA_FILE
+
+          # Linux ARM
+          sed -i.bak "s|^      url \"https://github.com/prompt-ops/pops/releases/download/.*pops-linux-arm64\"|      url \"https://github.com/prompt-ops/pops/releases/download/${VERSION}/pops-linux-arm64\"|" $FORMULA_FILE
+          sed -i.bak "s|^      sha256 \".*\"|      sha256 \"${LINUX_ARM64_SHA}\"|" $FORMULA_FILE
+
+          # Remove backup files
+          rm -f $FORMULA_FILE.bak
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.POPS_GITHUB_OPS_PAT }}
+          path: "homebrew-tap"
+          committer: pops-ci-bot <pops-ci-bot@users.noreply.github.com>
+          author: pops-ci-bot <pops-ci-bot@users.noreply.github.com>
+          signoff: true
+          commit-message: "chore: Update pops formula to ${{ env.TAG_NAME }}"
+          title: "Update pops formula to ${{ env.TAG_NAME }}"
+          body: "This PR was automatically created by GitHub Actions to bump pops to ${{ env.TAG_NAME }}."
+          base: main
+          branch: update-pops-${{ env.TAG_NAME }}
+          delete-branch: true
