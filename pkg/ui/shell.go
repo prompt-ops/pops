@@ -354,8 +354,8 @@ func (m shellModel) viewInitialChecks() string {
 	}
 	return fmt.Sprintf(
 		"%s %s",
-		titleStyle.Render("🔄 Checking authentication..."),
 		m.spinner.View(),
+		titleStyle.Render("Checking Authentication..."),
 	)
 }
 

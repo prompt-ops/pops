@@ -93,9 +93,9 @@ func runInteractiveDelete() (string, error) {
 	}
 
 	columns := []table.Column{
-		{Title: "Name", Width: 25},
+		{Title: "Name", Width: 15},
 		{Title: "Type", Width: 15},
-		{Title: "Subtype", Width: 20},
+		{Title: "Subtype", Width: 15},
 	}
 
 	t := table.New(
@@ -112,12 +112,12 @@ func runInteractiveDelete() (string, error) {
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
+		Foreground(lipgloss.Color("0")).
+		Background(lipgloss.Color("212")).
+		Bold(true)
 	t.SetStyles(s)
 
-	deleteTableModel := ui.NewTableModel(t, nil)
+	deleteTableModel := ui.NewTableModel(t, nil, false)
 
 	p := tea.NewProgram(deleteTableModel)
 	if _, err := p.Run(); err != nil {

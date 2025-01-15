@@ -102,7 +102,6 @@ func NewOpenRootModel() *openRootModel {
 		table.WithHeight(10),
 	)
 
-	// Style the table
 	s := table.DefaultStyles()
 	s.Header = s.Header.
 		BorderStyle(lipgloss.NormalBorder()).
@@ -110,9 +109,9 @@ func NewOpenRootModel() *openRootModel {
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
+		Foreground(lipgloss.Color("0")).
+		Background(lipgloss.Color("212")).
+		Bold(true)
 	t.SetStyles(s)
 
 	onSelect := func(selected string) tea.Msg {
@@ -130,7 +129,7 @@ func NewOpenRootModel() *openRootModel {
 		}
 	}
 
-	tblModel := ui.NewTableModel(t, onSelect)
+	tblModel := ui.NewTableModel(t, onSelect, false)
 
 	return &openRootModel{
 		step:       stepPick,

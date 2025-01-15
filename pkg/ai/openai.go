@@ -182,7 +182,6 @@ func (o *OpenAIModel) GetCommand(prompt string) (*AIResponse, error) {
 func (o *OpenAIModel) GetAnswer(prompt string) (*AIResponse, error) {
 	chatCompletion, err := o.client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(fmt.Sprintf(defaultSystemMessage, o.GetCommandType())),
 			openai.SystemMessage(o.GetContext()),
 			openai.UserMessage(prompt),
 		}),

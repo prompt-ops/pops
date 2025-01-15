@@ -76,9 +76,9 @@ func initialCreateModel() *createModel {
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
+		Foreground(lipgloss.Color("0")).
+		Background(lipgloss.Color("212")).
+		Bold(true)
 	t.SetStyles(s)
 
 	onSelect := func(selectedType string) tea.Msg {
@@ -87,7 +87,7 @@ func initialCreateModel() *createModel {
 		}
 	}
 
-	typeSelectionModel := ui.NewTableModel(t, onSelect)
+	typeSelectionModel := ui.NewTableModel(t, onSelect, false)
 
 	return &createModel{
 		currentStep:        createStepTypeSelection,

@@ -56,12 +56,12 @@ func runListAvaibleDatabaseTypes() error {
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
+		Foreground(lipgloss.Color("0")).
+		Background(lipgloss.Color("212")).
+		Bold(true)
 	t.SetStyles(s)
 
-	openTableModel := ui.NewTableModel(t, nil)
+	openTableModel := ui.NewTableModel(t, nil, true)
 
 	p := tea.NewProgram(openTableModel)
 	if _, err := p.Run(); err != nil {

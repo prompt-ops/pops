@@ -1,7 +1,10 @@
-// cmd/connection/cloud/open.go
 package cloud
 
 import (
+	"fmt"
+
+	"github.com/prompt-ops/pops/pkg/config"
+	"github.com/prompt-ops/pops/pkg/connection"
 	"github.com/prompt-ops/pops/pkg/ui"
 	"github.com/prompt-ops/pops/pkg/ui/cloud"
 
@@ -44,15 +47,86 @@ func (m *openModel) View() string {
 }
 
 func newOpenCmd() *cobra.Command {
+	var name string
+
 	cmd := &cobra.Command{
-		Use:   "open",
+		Use:   "open [connection-name]",
 		Short: "Open an existing cloud connection.",
+		Long: `Open a cloud connection to access its shell.
+
+You can specify the connection name either as a positional argument or using the --name flag.
+
+Examples:
+  pops connection cloud open my-azure-conn
+  pops connection cloud open --name my-azure-conn
+`,
+		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			var connectionName string
+
+			// Determine the connection name based on flag and arguments
+			if name != "" && len(args) > 0 {
+				// If both flag and argument are provided, prioritize the flag
+				fmt.Println("Warning: --name flag is provided; ignoring positional argument.")
+				connectionName = name
+			} else if name != "" {
+				// If only flag is provided
+				connectionName = name
+			} else if len(args) == 1 {
+				// If only positional argument is provided
+				connectionName = args[0]
+			} else {
+				// Interactive mode if neither flag nor argument is provided
+				p := tea.NewProgram(initialOpenModel())
+				if _, err := p.Run(); err != nil {
+					fmt.Printf("Error running interactive mode: %v\n", err)
+				}
+				return
+			}
+
+			// Non-interactive mode: Open the specified connection
+			conn, err := getConnectionByName(connectionName)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				return
+			}
+
+			transitionMsg := ui.TransitionToShellMsg{
+				Connection: conn,
+			}
+
 			p := tea.NewProgram(initialOpenModel())
+
+			// Send the transition message before running the program
+			go func() {
+				p.Send(transitionMsg)
+			}()
+
 			if _, err := p.Run(); err != nil {
-				panic(err)
+				fmt.Printf("Error transitioning to shell: %v\n", err)
 			}
 		},
 	}
+
+	// Define the --name flag
+	cmd.Flags().StringVar(&name, "name", "", "Name of the cloud connection")
+
 	return cmd
+}
+
+// getConnectionByName retrieves a cloud connection by its name.
+// Returns an error if the connection does not exist.
+func getConnectionByName(name string) (connection.Connection, error) {
+	cloudConnections, err := config.GetConnectionsByType(connection.ConnectionTypeCloud)
+	if err != nil {
+		return connection.Connection{}, fmt.Errorf("failed to retrieve connections: %w", err)
+	}
+
+	for _, conn := range cloudConnections {
+		if conn.Name == name {
+			return conn, nil
+		}
+	}
+
+	return connection.Connection{}, fmt.Errorf("connection '%s' does not exist", name)
 }

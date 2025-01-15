@@ -176,6 +176,7 @@ type AzureConnection struct {
 }
 
 func (a *AzureConnection) CheckAuthentication() error {
+	fmt.Println("Checking Azure authentication...")
 	// Check if az cli is installed
 	if _, err := exec.LookPath("az"); err != nil {
 		return fmt.Errorf("az CLI is not installed")

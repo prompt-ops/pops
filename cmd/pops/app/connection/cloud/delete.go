@@ -16,13 +16,21 @@ import (
 
 // newDeleteCmd creates the delete command
 func newDeleteCmd() *cobra.Command {
+	var name string
+
 	deleteCmd := &cobra.Command{
-		Use:   "delete",
+		Use:   "delete [connection-name]",
 		Short: "Delete a cloud connection or all cloud connections",
-		Example: `
-- **pops connection cloud delete my-cloud-connection**: Delete a cloud connection named 'my-cloud-connection'.
-- **pops connection cloud delete --all**: Delete all cloud connections.
-		`,
+		Long: `Delete a cloud connection or all cloud connections.
+
+You can specify the connection name either as a positional argument or using the --name flag.
+
+Examples:
+  pops connection cloud delete my-cloud-connection
+  pops connection cloud delete --name my-cloud-connection
+  pops connection cloud delete --all
+`,
+		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			all, err := cmd.Flags().GetBool("all")
 			if err != nil {
@@ -31,21 +39,29 @@ func newDeleteCmd() *cobra.Command {
 			}
 
 			if all {
+				// If --all flag is provided, ignore other arguments and flags
 				err := ui.RunWithSpinner("Deleting all cloud connections...", deleteAllCloudConnections)
 				if err != nil {
 					color.Red("Failed to delete all cloud connections: %v", err)
 				}
 				return
+			}
+
+			var connectionName string
+
+			// Determine the connection name based on --name flag and positional arguments
+			if name != "" && len(args) > 0 {
+				// If both --name flag and positional argument are provided, prioritize the flag
+				fmt.Println("Warning: --name flag is provided; ignoring positional argument.")
+				connectionName = name
+			} else if name != "" {
+				// If only --name flag is provided
+				connectionName = name
 			} else if len(args) == 1 {
-				connectionName := args[0]
-				err := ui.RunWithSpinner(fmt.Sprintf("Deleting cloud connection '%s'...", connectionName), func() error {
-					return deleteCloudConnection(connectionName)
-				})
-				if err != nil {
-					color.Red("Failed to delete cloud connection '%s': %v", connectionName, err)
-				}
-				return
+				// If only positional argument is provided
+				connectionName = args[0]
 			} else {
+				// Interactive mode if neither --name flag nor positional argument is provided
 				selectedConnection, err := runInteractiveDelete()
 				if err != nil {
 					color.Red("Error: %v", err)
@@ -59,10 +75,22 @@ func newDeleteCmd() *cobra.Command {
 						color.Red("Failed to delete cloud connection '%s': %v", selectedConnection, err)
 					}
 				}
+				return
+			}
+
+			// Non-interactive mode: Delete the specified connection
+			err = ui.RunWithSpinner(fmt.Sprintf("Deleting cloud connection '%s'...", connectionName), func() error {
+				return deleteCloudConnection(connectionName)
+			})
+			if err != nil {
+				color.Red("Failed to delete cloud connection '%s': %v", connectionName, err)
 			}
 		},
 	}
 
+	// Define the --name flag
+	deleteCmd.Flags().StringVar(&name, "name", "", "Name of the cloud connection to delete")
+	// Define the --all flag
 	deleteCmd.Flags().Bool("all", false, "Delete all cloud connections")
 
 	return deleteCmd
@@ -73,14 +101,23 @@ func deleteAllCloudConnections() error {
 	if err := config.DeleteAllConnectionsByType(connection.ConnectionTypeCloud); err != nil {
 		return fmt.Errorf("error deleting all cloud connections: %w", err)
 	}
+	color.Green("All cloud connections have been successfully deleted.")
 	return nil
 }
 
 // deleteCloudConnection deletes a single cloud connection by name
 func deleteCloudConnection(name string) error {
+	// Check if the connection exists before attempting to delete
+	conn, err := getConnectionByName(name)
+	if err != nil {
+		return fmt.Errorf("connection '%s' does not exist", name)
+	}
+
 	if err := config.DeleteConnectionByName(name); err != nil {
 		return fmt.Errorf("error deleting cloud connection: %w", err)
 	}
+
+	color.Green("Cloud connection '%s' has been successfully deleted.", conn.Name)
 	return nil
 }
 
@@ -89,6 +126,10 @@ func runInteractiveDelete() (string, error) {
 	connections, err := config.GetConnectionsByType(connection.ConnectionTypeCloud)
 	if err != nil {
 		return "", fmt.Errorf("getting connections: %w", err)
+	}
+
+	if len(connections) == 0 {
+		return "", fmt.Errorf("no cloud connections available to delete")
 	}
 
 	items := make([]table.Row, len(connections))
@@ -116,12 +157,12 @@ func runInteractiveDelete() (string, error) {
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
+		Foreground(lipgloss.Color("0")).
+		Background(lipgloss.Color("212")).
+		Bold(true)
 	t.SetStyles(s)
 
-	deleteTableModel := ui.NewTableModel(t, nil)
+	deleteTableModel := ui.NewTableModel(t, nil, false)
 
 	p := tea.NewProgram(deleteTableModel)
 	if _, err := p.Run(); err != nil {

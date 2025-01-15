@@ -14,5 +14,6 @@ build:
 	@echo "GOPATH: $(GOPATH)"
 	@echo "GO111MODULE: $(GO111MODULE)"
 	@echo "CGO_ENABLED: $(CGO_ENABLED)"
+	@echo "VERSION: $(VERSION)"
 	@go build -ldflags="-s -w -X github.com/prompt-ops/pops/cmd/pops/app.version=$(VERSION)" -o dist/pops-$(GOOS)-$(GOARCH) cmd/pops/main.go
 	@echo "Build complete."
