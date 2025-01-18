@@ -97,7 +97,6 @@ func (m *openRootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case ui.TransitionToShellMsg:
-		fmt.Println("Selected connection:", msg.Connection.Name)
 		m.shellModel = ui.NewShellModel(msg.Connection)
 		m.step = stepShell
 		return m.shellModel, m.shellModel.Init()
