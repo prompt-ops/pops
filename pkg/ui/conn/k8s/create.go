@@ -269,7 +269,7 @@ func (m *createModel) View() string {
 		return clearScreen + s
 
 	case stepCreateSpinner:
-		return clearScreen + outputStyle.Render("Saving conn... ") + m.spinner.View()
+		return clearScreen + outputStyle.Render("Saving connection... ") + m.spinner.View()
 
 	case stepCreateDone:
 		if m.err != nil {

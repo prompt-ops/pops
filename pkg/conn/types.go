@@ -138,6 +138,9 @@ type ConnectionInterface interface {
 	// This information will be sent to the AI model which will use it to generate the queries/commands.
 	GetContext() string
 
+	// GetFormattedContext returns the formatted context for the AI model.
+	GetFormattedContext() (string, error)
+
 	// ExecuteCommand executes the given command and returns the output as byte array.
 	ExecuteCommand(command string) ([]byte, error)
 

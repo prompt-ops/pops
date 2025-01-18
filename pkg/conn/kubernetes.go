@@ -90,6 +90,8 @@ func NewKubernetesConnectionImpl(connection *Connection) *KubernetesConnectionIm
 	}
 }
 
+var _ ConnectionInterface = &KubernetesConnectionImpl{}
+
 func (k *KubernetesConnectionImpl) GetConnection() Connection {
 	return k.Connection
 }
@@ -166,6 +168,44 @@ func (k *KubernetesConnectionImpl) GetContext() string {
 	}
 
 	return sb.String()
+}
+
+func (k *KubernetesConnectionImpl) GetFormattedContext() (string, error) {
+	var buffer bytes.Buffer
+	table := tablewriter.NewWriter(&buffer)
+
+	// Namespaces
+	table.SetHeader([]string{"Namespaces"})
+	for _, ns := range k.Namespaces {
+		table.Append([]string{ns.Name})
+	}
+	table.Render()
+
+	// Pods
+	table = tablewriter.NewWriter(&buffer)
+	table.SetHeader([]string{"Pods", "Namespace"})
+	for _, pod := range k.Pods {
+		table.Append([]string{pod.Name, pod.Namespace})
+	}
+	table.Render()
+
+	// Deployments
+	table = tablewriter.NewWriter(&buffer)
+	table.SetHeader([]string{"Deployments", "Namespace"})
+	for _, dep := range k.Deployments {
+		table.Append([]string{dep.Name, dep.Namespace})
+	}
+	table.Render()
+
+	// Services
+	table = tablewriter.NewWriter(&buffer)
+	table.SetHeader([]string{"Services", "Namespace"})
+	for _, svc := range k.Services {
+		table.Append([]string{svc.Name, svc.Namespace})
+	}
+	table.Render()
+
+	return buffer.String(), nil
 }
 
 func (k *KubernetesConnectionImpl) GetCommand(prompt string) (string, error) {

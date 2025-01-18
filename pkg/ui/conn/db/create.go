@@ -287,7 +287,7 @@ func (m *createModel) View() string {
 		if m.err != nil {
 			return clearScreen + fmt.Sprintf("❌ Error: %v\n\nPress 'q', 'esc', or Ctrl+C to quit.", m.err)
 		}
-		return clearScreen + fmt.Sprintf("Saving conn... %s", m.spinner.View())
+		return clearScreen + fmt.Sprintf("Saving connection... %s", m.spinner.View())
 
 	case stepCreateDone:
 		if m.err != nil {

@@ -41,6 +41,12 @@ func init() {
 
 // loadConnections reads the connections from the JSON configuration file.
 func loadConnections() error {
+	if _, statErr := os.Stat(connectionsConfigFilePath); os.IsNotExist(statErr) {
+		if createErr := writeConnections(); createErr != nil {
+			return createErr
+		}
+	}
+
 	file, err := os.Open(connectionsConfigFilePath)
 	if err != nil {
 		return err

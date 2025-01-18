@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"regexp"
 
+	"github.com/charmbracelet/lipgloss"
 	_ "github.com/lib/pq"
 	"github.com/olekukonko/tablewriter"
 	"github.com/prompt-ops/pops/pkg/ai"
@@ -186,7 +186,7 @@ func (b *BaseRDBMSConnection) SetContext() error {
 		column = AddQuotesIfNeeded(column)
 		dataType = AddQuotesIfNeeded(dataType)
 
-		fullTableName := fmt.Sprintf(`%s."%s"`, schema, table)
+		fullTableName := fmt.Sprintf(`%s.%s`, schema, table)
 		b.TablesAndColumns[fullTableName] = append(b.TablesAndColumns[fullTableName], ColumnDetail{
 			Name:     column,
 			DataType: dataType,
@@ -201,10 +201,11 @@ func (b *BaseRDBMSConnection) SetContext() error {
 
 // AddQuotesIfNeeded adds quotes around the name if it contains capital letters.
 func AddQuotesIfNeeded(name string) string {
-	if regexp.MustCompile(`[A-Z]`).MatchString(name) {
-		return fmt.Sprintf(`"%s"`, name)
-	}
-	return name
+	// if regexp.MustCompile(`[A-Z]`).MatchString(name) {
+	// 	return fmt.Sprintf(`"%s"`, name)
+	// }
+	// return name
+	return fmt.Sprintf(`"%s"`, name)
 }
 
 // GetContext returns the tables and columns set by SetContext.
@@ -218,6 +219,8 @@ func (b *BaseRDBMSConnection) GetContext() string {
 	}
 
 	context := fmt.Sprintf("%s Connection Details:\n", b.Connection.Type.GetSubtype())
+	context += "Note to the AI: Please use all columns and table with double quotes as defined below.\n"
+	context += "Note to the AI: And please always use tables with aliases where possible.\n"
 	context += "Database Schema:\n"
 
 	// If still no tables found, return an error message.
@@ -235,6 +238,45 @@ func (b *BaseRDBMSConnection) GetContext() string {
 	}
 
 	return context
+}
+
+// GetFormattedContext generates a pretty-printed string of the tables and columns.
+func (b *BaseRDBMSConnection) GetFormattedContext() (string, error) {
+	if b.TablesAndColumns == nil {
+		// Call SetContext to populate the tables and columns.
+		if err := b.SetContext(); err != nil {
+			return "", fmt.Errorf("error getting context: %v", err)
+		}
+	}
+
+	if len(b.TablesAndColumns) == 0 {
+		return "No tables found or SetContext() not called.", nil
+	}
+
+	var buffer bytes.Buffer
+	tableStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Padding(1, 2).
+		Margin(1, 0)
+
+	columnStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("212"))
+
+	for tableName, columns := range b.TablesAndColumns {
+		var tableBuffer bytes.Buffer
+		tableBuffer.WriteString(fmt.Sprintf("Table: %s\n", tableName))
+		tableBuffer.WriteString("Columns:\n")
+		for _, column := range columns {
+			columnContent := fmt.Sprintf("%s (%s)\n", column.Name, column.DataType)
+			tableBuffer.WriteString(columnStyle.Render(columnContent))
+		}
+		tableContent := tableBuffer.String()
+		buffer.WriteString(tableStyle.Render(tableContent))
+		buffer.WriteString("\n")
+	}
+
+	return buffer.String(), nil
 }
 
 func (b *BaseRDBMSConnection) ExecuteCommand(command string) ([]byte, error) {
@@ -343,6 +385,8 @@ func (b *BaseRDBMSConnection) FormatResultAsTable(result []byte) (string, error)
 type PostgreSQLConnection struct {
 	BaseRDBMSConnection
 }
+
+var _ ConnectionInterface = &PostgreSQLConnection{}
 
 func NewPostgreSQLConnection(connnection *Connection) *PostgreSQLConnection {
 	if connnection.Type.GetSubtype() != "PostgreSQL" {

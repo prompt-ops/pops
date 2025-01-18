@@ -147,8 +147,6 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case checkPassedMsg:
 		m.checkPassed = true
-		m.step = stepShowContext
-		m.output = "Will be added here"
 		m.step = stepEnterPrompt
 		return m, textinput.Blink
 
@@ -165,6 +163,12 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case stepShowContext:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if msg.Type == tea.KeyF1 {
+				m.step = stepEnterPrompt
+			}
+		}
 		return m, nil
 
 	case stepEnterPrompt:
@@ -215,6 +219,16 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case tea.KeyCtrlC, tea.KeyEsc:
 				return m, tea.Quit
+
+			case tea.KeyF1:
+				m.step = stepShowContext
+				output, err := m.popsConnection.GetFormattedContext()
+				if err != nil {
+					m.err = err
+					return m, nil
+				}
+				m.output = output
+				return m, nil
 			}
 		}
 		return m, cmd
@@ -322,6 +336,9 @@ func (m shellModel) View() string {
 	case stepInitialChecks:
 		content = m.viewInitialChecks()
 
+	case stepShowContext:
+		content = m.viewShowContext()
+
 	case stepEnterPrompt:
 		content = m.viewEnterPrompt()
 
@@ -370,7 +387,7 @@ func (m shellModel) viewEnterPrompt() string {
 		modeStr = "answer"
 	}
 
-	footer := "Use ←/→ to switch between modes (currently " + modeStr + "). Press Enter when ready."
+	footer := "Use ←/→ to switch between modes (currently " + modeStr + "). Press Enter when ready.\n\nPress F1 to show context."
 
 	return fmt.Sprintf(
 		"%s\n\n%s\n\n%s",
@@ -378,6 +395,16 @@ func (m shellModel) viewEnterPrompt() string {
 		promptStyle.Render(m.promptInput.View()),
 		lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(footer),
 	)
+}
+
+func (m shellModel) viewShowContext() string {
+	footer := "Press F1 to return to prompt."
+
+	return fmt.Sprintf(
+		"%s\n\n%s",
+		titleStyle.Render("ℹ️ Current Context"),
+		outputStyle.Render(m.output),
+	) + "\n\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(footer)
 }
 
 func (m shellModel) viewGenerateCommand() string {
@@ -498,16 +525,10 @@ func (m shellModel) runCommand(command string) tea.Cmd {
 			return errMsg{err}
 		}
 
-		fmt.Println("Output:")
-		fmt.Println(string(out))
-
 		outStr, err := m.popsConnection.FormatResultAsTable(out)
 		if err != nil {
 			return errMsg{err}
 		}
-
-		fmt.Println("Formatted Output:")
-		fmt.Println(outStr)
 
 		return outputMsg{
 			output: outStr,

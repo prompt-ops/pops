@@ -169,6 +169,8 @@ func (c *BaseCloudConnection) FormatResultAsTable(result []byte) (string, error)
 	return buffer.String(), nil
 }
 
+var _ ConnectionInterface = &AzureConnection{}
+
 type AzureConnection struct {
 	BaseCloudConnection
 
@@ -223,6 +225,26 @@ func (a *AzureConnection) GetContext() string {
 	}
 
 	return context
+}
+
+func (a *AzureConnection) GetFormattedContext() (string, error) {
+	if a.ResourceGroups == nil {
+		// Call SetContext to populate the resource groups.
+		// This is a fallback in case SetContext is not called.
+		if err := a.SetContext(); err != nil {
+			return "", fmt.Errorf("error getting context: %v", err)
+		}
+	}
+
+	var buffer bytes.Buffer
+	table := tablewriter.NewWriter(&buffer)
+	table.SetHeader([]string{"Resource Group"})
+	for _, rg := range a.ResourceGroups {
+		table.Append([]string{rg.Name})
+	}
+	table.Render()
+
+	return buffer.String(), nil
 }
 
 func NewAzureConnection(connnection *Connection) *AzureConnection {
