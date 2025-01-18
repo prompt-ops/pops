@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/prompt-ops/pops/pkg/connection"
+	"github.com/prompt-ops/pops/pkg/conn"
 )
 
 var (
@@ -72,15 +72,15 @@ type shellModel struct {
 	err            error
 	history        []historyEntry
 	historyIndex   int
-	connection     connection.Connection
-	popsConnection connection.ConnectionInterface
+	connection     conn.Connection
+	popsConnection conn.ConnectionInterface
 	spinner        spinner.Model
 	checkPassed    bool
 	mode           queryMode
 	windowWidth    int
 }
 
-func NewShellModel(conn connection.Connection) shellModel {
+func NewShellModel(connection conn.Connection) shellModel {
 	ti := textinput.New()
 	ti.Placeholder = "Enter your prompt..."
 	ti.Focus()
@@ -96,7 +96,7 @@ func NewShellModel(conn connection.Connection) shellModel {
 	sp.Spinner = spinner.Dot
 
 	// Get the right connection implementation
-	popsConn, err := connection.GetConnection(conn)
+	popsConn, err := conn.GetConnection(connection)
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +106,7 @@ func NewShellModel(conn connection.Connection) shellModel {
 		promptInput:    ti,
 		confirmInput:   ci,
 		history:        []historyEntry{},
-		connection:     conn,
+		connection:     connection,
 		popsConnection: popsConn,
 		spinner:        sp,
 		mode:           modeCommand,
@@ -165,7 +165,6 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case stepShowContext:
-		// This step is now handled in the checkPassedMsg case
 		return m, nil
 
 	case stepEnterPrompt:
@@ -499,10 +498,16 @@ func (m shellModel) runCommand(command string) tea.Cmd {
 			return errMsg{err}
 		}
 
+		fmt.Println("Output:")
+		fmt.Println(string(out))
+
 		outStr, err := m.popsConnection.FormatResultAsTable(out)
 		if err != nil {
 			return errMsg{err}
 		}
+
+		fmt.Println("Formatted Output:")
+		fmt.Println(outStr)
 
 		return outputMsg{
 			output: outStr,

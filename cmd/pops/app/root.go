@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/prompt-ops/pops/cmd/pops/app/connection"
+	"github.com/prompt-ops/pops/cmd/pops/app/conn"
 	"github.com/spf13/cobra"
 )
 
@@ -17,8 +17,8 @@ func NewRootCommand() *cobra.Command {
 	// `pops version` command
 	cmd.AddCommand(NewVersionCmd)
 
-	// `pops connection` commands
-	cmd.AddCommand(connection.NewConnectionCommand())
+	// `pops connection (conn as alias)` commands
+	cmd.AddCommand(conn.NewConnectionCommand())
 
 	return cmd
 }

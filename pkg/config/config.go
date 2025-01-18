@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/prompt-ops/pops/pkg/connection"
+	"github.com/prompt-ops/pops/pkg/conn"
 )
 
 // connections stores all the connection configurations in memory.
-var connections []connection.Connection
+var connections []conn.Connection
 
 // connectionsConfigFilePath defines the path to the connections configuration file.
 var connectionsConfigFilePath = getConfigFilePath("connections.json")
@@ -47,7 +47,7 @@ func loadConnections() error {
 	}
 	defer file.Close()
 
-	var loadedConnections []connection.Connection
+	var loadedConnections []conn.Connection
 	if err := json.NewDecoder(file).Decode(&loadedConnections); err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func loadConnections() error {
 }
 
 // SaveConnection saves a new connection or updates an existing one based on the connection name.
-func SaveConnection(conn connection.Connection) error {
+func SaveConnection(conn conn.Connection) error {
 	if connections == nil {
 		if err := loadConnections(); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
@@ -102,10 +102,10 @@ func writeConnections() error {
 }
 
 // GetConnectionByName retrieves a connection by its name.
-func GetConnectionByName(connectionName string) (connection.Connection, error) {
+func GetConnectionByName(connectionName string) (conn.Connection, error) {
 	if connections == nil {
 		if err := loadConnections(); err != nil {
-			return connection.Connection{}, err
+			return conn.Connection{}, err
 		}
 	}
 
@@ -115,11 +115,11 @@ func GetConnectionByName(connectionName string) (connection.Connection, error) {
 		}
 	}
 
-	return connection.Connection{}, fmt.Errorf("connection with name '%s' does not exist", connectionName)
+	return conn.Connection{}, fmt.Errorf("connection with name '%s' does not exist", connectionName)
 }
 
 // GetAllConnections retrieves all stored connections.
-func GetAllConnections() ([]connection.Connection, error) {
+func GetAllConnections() ([]conn.Connection, error) {
 	if connections == nil {
 		if err := loadConnections(); err != nil {
 			return nil, err
@@ -130,13 +130,13 @@ func GetAllConnections() ([]connection.Connection, error) {
 }
 
 // GetConnectionsByType retrieves connections filtered by their type.
-func GetConnectionsByType(connectionType string) ([]connection.Connection, error) {
+func GetConnectionsByType(connectionType string) ([]conn.Connection, error) {
 	allConnections, err := GetAllConnections()
 	if err != nil {
 		return nil, err
 	}
 
-	var filteredConnections []connection.Connection
+	var filteredConnections []conn.Connection
 	for _, conn := range allConnections {
 		if strings.EqualFold(conn.Type.GetMainType(), connectionType) {
 			filteredConnections = append(filteredConnections, conn)
@@ -154,7 +154,7 @@ func DeleteConnectionByName(connectionName string) error {
 		}
 	}
 
-	var updatedConnections []connection.Connection
+	var updatedConnections []conn.Connection
 	found := false
 	for _, conn := range connections {
 		if strings.EqualFold(conn.Name, connectionName) {
@@ -179,7 +179,7 @@ func DeleteConnectionByName(connectionName string) error {
 
 // DeleteAllConnections removes all stored connections.
 func DeleteAllConnections() error {
-	connections = []connection.Connection{}
+	connections = []conn.Connection{}
 
 	if err := writeConnections(); err != nil {
 		return err
@@ -195,7 +195,7 @@ func DeleteAllConnectionsByType(connectionType string) error {
 		}
 	}
 
-	var updatedConnections []connection.Connection
+	var updatedConnections []conn.Connection
 	for _, conn := range connections {
 		if !strings.EqualFold(conn.Type.GetMainType(), connectionType) {
 			updatedConnections = append(updatedConnections, conn)
