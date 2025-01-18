@@ -11,8 +11,9 @@ import (
 // NewConnectionCommand creates the 'connection' command with descriptions and examples for managing connections.
 func NewConnectionCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "connection",
-		Short: "Manage your infrastructure connections using natural language.",
+		Use:     "connection",
+		Aliases: []string{"conn"},
+		Short:   "Manage your infrastructure connections using natural language.",
 		Long: `
 Prompt-Ops manages your infrastructure using natural language.
 
