@@ -3,6 +3,7 @@ package db
 import (
 	ui "github.com/prompt-ops/pops/pkg/ui"
 	dbui "github.com/prompt-ops/pops/pkg/ui/conn/db"
+	"github.com/prompt-ops/pops/pkg/ui/shell"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -30,7 +31,7 @@ func (m *openModel) Init() tea.Cmd {
 func (m *openModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ui.TransitionToShellMsg:
-		shell := ui.NewShellModel(msg.Connection)
+		shell := shell.NewShellModel(msg.Connection)
 		return shell, shell.Init()
 	}
 	var cmd tea.Cmd

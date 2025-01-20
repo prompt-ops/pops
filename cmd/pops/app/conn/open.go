@@ -2,8 +2,8 @@ package conn
 
 import (
 	"github.com/prompt-ops/pops/pkg/config"
-	"github.com/prompt-ops/pops/pkg/ui"
 	"github.com/prompt-ops/pops/pkg/ui/conn"
+	"github.com/prompt-ops/pops/pkg/ui/shell"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fatih/color"
@@ -36,7 +36,7 @@ func openSingleConnection(name string) {
 		return
 	}
 
-	shell := ui.NewShellModel(conn)
+	shell := shell.NewShellModel(conn)
 	p := tea.NewProgram(shell)
 	if _, err := p.Run(); err != nil {
 		color.Red("Error opening shell UI: %v", err)

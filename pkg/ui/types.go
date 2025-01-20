@@ -4,10 +4,6 @@ import (
 	"github.com/prompt-ops/pops/pkg/conn"
 )
 
-type answerMsg struct {
-	answer string
-}
-
 type TransitionToShellMsg struct {
 	Connection conn.Connection
 }

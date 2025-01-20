@@ -5,6 +5,7 @@ import (
 
 	"github.com/prompt-ops/pops/pkg/config"
 	"github.com/prompt-ops/pops/pkg/ui"
+	"github.com/prompt-ops/pops/pkg/ui/shell"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -97,7 +98,7 @@ func (m *openRootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case ui.TransitionToShellMsg:
-		m.shellModel = ui.NewShellModel(msg.Connection)
+		m.shellModel = shell.NewShellModel(msg.Connection)
 		m.step = stepShell
 		return m.shellModel, m.shellModel.Init()
 
