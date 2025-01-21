@@ -61,8 +61,8 @@ Cloud Connection:
 - Available Cloud connection types: Azure.
 - Commands: create, delete, open, list, types.
 - Examples:
- * 'pops connection cloud create' creates a connection interactively.
- * 'pops connection cloud create --name my-azure-conn --provider azure' creates a connection non-interactively.
+ * 'pops conn cloud create' creates a connection interactively.
+ * 'pops conn cloud create --name my-azure-conn --provider azure' creates a connection non-interactively.
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Non-interactive mode

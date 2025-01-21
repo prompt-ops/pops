@@ -14,11 +14,11 @@ Cloud Connection:
 - Available Cloud connection types: Azure.
 - Commands: create, delete, open, list, types.
 - Examples:
- * 'pops connection cloud create' creates a connection to a cloud provider.
- * 'pops connection cloud open' opens an existing cloud connection.
- * 'pops connection cloud list' lists all cloud connections.
- * 'pops connection cloud delete' deletes a cloud connection.
- * 'pops connection cloud types' lists all available cloud connection types (for now; Azure).
+ * 'pops conn cloud create' creates a connection to a cloud provider.
+ * 'pops conn cloud open' opens an existing cloud connection.
+ * 'pops conn cloud list' lists all cloud connections.
+ * 'pops conn cloud delete' deletes a cloud connection.
+ * 'pops conn cloud types' lists all available cloud connection types (for now; Azure).
 
 More connection types and features are coming soon!`,
 	}

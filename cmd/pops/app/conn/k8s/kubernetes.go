@@ -6,19 +6,20 @@ import (
 
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "kubernetes",
-		Short: "Manage kubernetes connections.",
+		Use:     "kubernetes",
+		Aliases: []string{"k8s"},
+		Short:   "Manage kubernetes connections.",
 		Long: `
 Kubernetes Connection:
 
 - Available Kubernetes connection types: All Kubernetes clusters defined in your configuration.
 - Commands: create, delete, open, list, types.
 - Examples:
- * 'pops connection kubernetes create' creates a connection to a Kubernetes cluster.
- * 'pops connection kubernetes open' opens an existing Kubernetes connection.
- * 'pops connection kubernetes list' lists all Kubernetes connections.
- * 'pops connection kubernetes delete' deletes a Kubernetes connection.
- * 'pops connection kubernetes types' lists all available Kubernetes connection types (for now; all Kubernetes clusters defined in your configuration).
+ * 'pops conn k8s create' creates a connection to a Kubernetes cluster.
+ * 'pops conn k8s open' opens an existing Kubernetes connection.
+ * 'pops conn k8s list' lists all Kubernetes connections.
+ * 'pops conn k8s delete' deletes a Kubernetes connection.
+ * 'pops conn k8s types' lists all available Kubernetes connection types (for now; all Kubernetes clusters defined in your configuration).
 
 More connection types and features are coming soon!`,
 	}

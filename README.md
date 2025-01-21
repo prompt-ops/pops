@@ -25,6 +25,7 @@ With features like interactive flows, intelligent suggestions, and broad connect
   - [🎯 Planned Features](#-planned-features)
   - [🤝 Contributing](#-contributing)
   - [🪪 License](#-license)
+  - [📚 Examples](#-examples)
 
 ## 🚀 Key Features
 
@@ -139,3 +140,7 @@ We welcome contributions! Please see our [CONTRIBUTING.md](docs/contributing/CON
 ## 🪪 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📚 Examples
+
+Please see [Prompt-Ops examples](docs/examples/README.md) for details.
