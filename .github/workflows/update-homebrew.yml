@@ -43,10 +43,10 @@ jobs:
           LINUX_AMD64_SHA=$(sha256sum pops-linux-amd64 | cut -d ' ' -f1)
           LINUX_ARM64_SHA=$(sha256sum pops-linux-arm64 | cut -d ' ' -f1)
 
-          echo "darwin_amd64_sha=${DARWIN_AMD64_SHA}" >> $GITHUB_OUTPUT
-          echo "darwin_arm64_sha=${DARWIN_ARM64_SHA}" >> $GITHUB_OUTPUT
-          echo "linux_amd64_sha=${LINUX_AMD64_SHA}" >> $GITHUB_OUTPUT
-          echo "linux_arm64_sha=${LINUX_ARM64_SHA}" >> $GITHUB_OUTPUT
+          echo "darwin_amd64_sha=${DARWIN_AMD64_SHA}" >> $GITHUB_ENV
+          echo "darwin_arm64_sha=${DARWIN_ARM64_SHA}" >> $GITHUB_ENV
+          echo "linux_amd64_sha=${LINUX_AMD64_SHA}" >> $GITHUB_ENV
+          echo "linux_arm64_sha=${LINUX_ARM64_SHA}" >> $GITHUB_ENV
 
       - name: Checkout Homebrew Tap
         uses: actions/checkout@v4
@@ -59,10 +59,10 @@ jobs:
       - name: Update formula
         run: |
           VERSION=${{ env.TAG_NAME }}
-          DARWIN_AMD64_SHA=${{ steps.checksums.outputs.darwin_amd64_sha }}
-          DARWIN_ARM64_SHA=${{ steps.checksums.outputs.darwin_arm64_sha }}
-          LINUX_AMD64_SHA=${{ steps.checksums.outputs.linux_amd64_sha }}
-          LINUX_ARM64_SHA=${{ steps.checksums.outputs.linux_arm64_sha }}
+          DARWIN_AMD64_SHA=${{ env.darwin_amd64_sha }}
+          DARWIN_ARM64_SHA=${{ env.darwin_arm64_sha }}
+          LINUX_AMD64_SHA=${{ env.linux_amd64_sha }}
+          LINUX_ARM64_SHA=${{ env.linux_arm64_sha }}
 
           cd homebrew-tap
           FORMULA_FILE="Formula/pops.rb"
