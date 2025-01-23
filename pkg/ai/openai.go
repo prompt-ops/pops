@@ -146,9 +146,8 @@ func (o *OpenAIModel) GetCommand(prompt string) (*AIResponse, error) {
 			openai.SystemMessage(o.GetContext()),
 			openai.UserMessage(prompt),
 		}),
-		Model: openai.F(o.GetChatModel()),
-		ToolChoice: openai.F[openai.ChatCompletionToolChoiceOptionUnionParam](
-			openai.ChatCompletionToolChoiceOptionBehavior(openai.ChatCompletionToolChoiceOptionBehaviorRequired)),
+		Model:       openai.F(o.GetChatModel()),
+		ToolChoice:  openai.F[openai.ChatCompletionToolChoiceOptionUnionParam](openai.ChatCompletionToolChoiceOptionAutoRequired),
 		Tools:       openai.F(tools),
 		Temperature: openai.F(0.2),
 	})

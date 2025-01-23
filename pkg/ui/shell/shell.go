@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/prompt-ops/pops/pkg/conn"
+	"golang.org/x/term"
 )
 
 type queryMode int
@@ -59,15 +60,16 @@ type shellModel struct {
 
 func NewShellModel(connection conn.Connection) shellModel {
 	ti := textinput.New()
-	ti.Placeholder = "Enter your prompt..."
+	ti.Placeholder = "Define the command or query to be generated via Prompt-Ops..."
 	ti.Focus()
-	ti.CharLimit = 256
-	ti.Width = 50
+	ti.CharLimit = 512
+	ti.Width = 100
 
 	ci := textinput.New()
-	ci.Placeholder = "Yes/No"
+	ci.Placeholder = "Y/n"
 	ci.CharLimit = 3
-	ci.Width = 10
+	ci.Width = 100
+	ci.PromptStyle.Padding(0, 1)
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
@@ -91,7 +93,12 @@ func NewShellModel(connection conn.Connection) shellModel {
 }
 
 func (m shellModel) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, m.runInitialChecks, tea.EnterAltScreen)
+	return tea.Batch(
+		m.spinner.Tick,
+		m.runInitialChecks,
+		tea.EnterAltScreen,
+		requestWindowSize(),
+	)
 }
 
 func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -151,18 +158,17 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.promptInput.SetValue(nextPrompt)
 					m.promptInput.CursorEnd()
 				} else {
-					// Clear the input if at the latest entry
 					m.historyIndex = len(m.history)
 					m.promptInput.SetValue("")
 				}
 
 			case tea.KeyLeft, tea.KeyRight:
-				// Toggle between Command and Answer mode
 				if m.mode == modeCommand {
 					m.mode = modeAnswer
 				} else {
 					m.mode = modeCommand
 				}
+				m.updatePromptInputPlaceholder()
 
 			case tea.KeyEnter:
 				prompt := strings.TrimSpace(m.promptInput.Value())
@@ -202,7 +208,6 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case stepGetAnswer:
-		// If we successfully got an answer, we’ll receive an `answerMsg`.
 		if ansMsg, ok := msg.(answerMsg); ok {
 			m.output = ansMsg.answer
 			m.step = stepDone
@@ -215,15 +220,14 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.confirmInput, cmd = m.confirmInput.Update(msg)
 		if key, ok := msg.(tea.KeyMsg); ok && key.Type == tea.KeyEnter {
 			val := m.confirmInput.Value()
-			if val == "Yes" || val == "yes" {
+			if val == "Y" || val == "y" {
 				m.step = stepRunCommand
 				return m, m.runCommand(m.command)
-			} else if val == "No" || val == "no" {
-				// User declined, reset prompt
+			} else if val == "N" || val == "n" {
 				m.step = stepEnterPrompt
 				m.promptInput.Reset()
 				m.confirmInput.Reset()
-				m.historyIndex = len(m.history) // Reset historyIndex
+				m.historyIndex = len(m.history)
 				return m, textinput.Blink
 			}
 		}
@@ -239,13 +243,11 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stepDone:
 		if m.err != nil {
-			switch msg := msg.(type) {
-			case tea.KeyMsg:
-				switch msg.String() {
+			if key, ok := msg.(tea.KeyMsg); ok {
+				switch key.String() {
 				case "q", "esc", "ctrl+c":
 					return m, tea.Quit
 				case "enter":
-					// Reset the model to start a new prompt
 					m.err = nil
 					m.step = stepEnterPrompt
 					m.promptInput.Reset()
@@ -255,30 +257,35 @@ func (m shellModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		mode := "Command"
-		if m.mode == modeAnswer {
-			mode = "Answer"
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch key.String() {
+			case "q", "esc", "ctrl+c":
+				return m, tea.Quit
+			case "enter":
+				mode := "Command"
+				if m.mode == modeAnswer {
+					mode = "Answer"
+				}
+
+				m.history = append(m.history, historyEntry{
+					prompt: m.promptInput.Value(),
+					cmd:    m.command,
+					mode:   mode,
+					output: m.output,
+					err:    m.err,
+				})
+
+				m.historyIndex = len(m.history)
+				m.step = stepEnterPrompt
+				m.promptInput.Reset()
+				m.confirmInput.Reset()
+				return m, textinput.Blink
+			}
 		}
 
-		// Append the successful prompt to history
-		m.history = append(m.history, historyEntry{
-			prompt: m.promptInput.Value(),
-			cmd:    m.command,
-			mode:   mode,
-			output: m.output,
-			err:    m.err,
-		})
-		// Reset historyIndex to point to the end
-		m.historyIndex = len(m.history)
-		// Reset inputs for next prompt
-		m.step = stepEnterPrompt
-		m.promptInput.Reset()
-		m.confirmInput.Reset()
-
-		return m, textinput.Blink
+		return m, nil
 
 	default:
-		// Unexpected step; exit
 		return m, tea.Quit
 	}
 }
@@ -321,4 +328,25 @@ func (m shellModel) View() string {
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Top, historyView, content)
+}
+
+func requestWindowSize() tea.Cmd {
+	return func() tea.Msg {
+		w, h, err := term.GetSize(0)
+		if err != nil {
+			w, h = 80, 24
+		}
+		return tea.WindowSizeMsg{
+			Width:  w,
+			Height: h,
+		}
+	}
+}
+
+func (m *shellModel) updatePromptInputPlaceholder() {
+	if m.mode == modeAnswer {
+		m.promptInput.Placeholder = "Ask a question via Prompt-Ops..."
+	} else {
+		m.promptInput.Placeholder = "Define the command or query to be generated via Prompt-Ops..."
+	}
 }

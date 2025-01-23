@@ -254,49 +254,43 @@ func (k *KubernetesConnectionImpl) ExecuteCommand(command string) ([]byte, error
 }
 
 func (k *KubernetesConnectionImpl) FormatResultAsTable(result []byte) (string, error) {
-	// Convert the byte array to a string
 	resultStr := string(result)
 
-	// Split the result into lines
 	lines := strings.Split(resultStr, "\n")
 	if len(lines) == 0 {
 		return "", fmt.Errorf("no data to format")
 	}
 
-	// The first line is assumed to be the header
 	header := strings.Fields(lines[0])
 	if len(header) == 0 {
 		return "", fmt.Errorf("no headers found in result")
 	}
 
-	// Parse the remaining lines as rows
 	var rows [][]string
 	for _, line := range lines[1:] {
-		// Skip empty lines
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		// Split the line into fields and add it to the rows
 		row := strings.Fields(line)
 		rows = append(rows, row)
 	}
 
-	// Create a buffer to write the formatted table
 	var buffer bytes.Buffer
 
-	// Initialize the table writer
 	table := tablewriter.NewWriter(&buffer)
+	table.SetAutoWrapText(false)         // Disable wrapping
+	table.SetReflowDuringAutoWrap(false) // Avoid reflows
+	table.SetRowLine(true)               // Horizontal line between rows
+	table.SetAutoFormatHeaders(false)    // Keep header text as-is
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetHeader(header)
 
-	// Add rows to the table
 	for _, row := range rows {
 		table.Append(row)
 	}
 
-	// Render the table
 	table.Render()
 
-	// Return the formatted table as a string
 	return buffer.String(), nil
 }
 

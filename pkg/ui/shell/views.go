@@ -63,10 +63,10 @@ func (m shellModel) viewGetAnswer() string {
 
 func (m shellModel) viewConfirmRun() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s",
-		commandStyle.Render(fmt.Sprintf("💡 Command: %s", m.command)),
-		confirmationStyle.Render("Run this command? (Yes/No)"),
-		m.confirmInput.View(),
+		"%s\n\n%s\n\n%s",
+		commandConfirmationTitleStyle.Render("🚀 Would you like to run the following command? (Y/n)"),
+		commandConfirmationContentStyle.Render("🐳 "+m.command),
+		commandConfirmationResponseStyle.Render(m.confirmInput.View()),
 	)
 }
 
@@ -75,9 +75,11 @@ func (m shellModel) viewRunCommand() string {
 }
 
 func (m shellModel) viewDone() string {
+	width := m.calculateShareViewWidth()
+
 	outStyle := lipgloss.NewStyle().
-		Width(72).
-		MaxWidth(72)
+		Width(width).
+		MaxWidth(width)
 
 	var content string
 	if m.err != nil {
@@ -100,21 +102,27 @@ func (m shellModel) viewHistory() string {
 
 	var entries []string
 	for _, h := range m.history {
-		// Build lines with label + content
-		promptLine := lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			historyLabelStyle.Render("Prompt: "),
-			promptStyle.Render(h.prompt),
-		)
-
+		var promptLine string
 		var modeLine string
 		if h.mode == "Command" {
+			promptLine = lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				historyLabelStyle.Render("Prompt: "),
+				promptStyle.Render(h.prompt),
+			)
+
 			modeLine = lipgloss.JoinHorizontal(
 				lipgloss.Top,
 				historyLabelStyle.Render("Command: "),
-				commandStyle.Render(h.cmd),
+				historyCommandStyle.Render(h.cmd),
 			)
 		} else {
+			promptLine = lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				historyLabelStyle.Render("Question: "),
+				promptStyle.Render(h.prompt),
+			)
+
 			modeLine = lipgloss.JoinHorizontal(
 				lipgloss.Top,
 				historyLabelStyle.Render("Answer: "),
@@ -135,12 +143,23 @@ func (m shellModel) viewHistory() string {
 
 		content = lipgloss.JoinVertical(lipgloss.Left, content)
 
-		// Render the box
+		// Adding minus 10 to the history box width.
+		// FIXME: Right border is not visible.
+		width := m.calculateShareViewWidth()
 		boxed := historyContainerStyle.
-			MaxWidth(m.windowWidth - 2).
+			Width(width).
+			MaxWidth(width).
 			Render(content)
 		entries = append(entries, boxed)
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, entries...)
+}
+
+func (m shellModel) calculateShareViewWidth() int {
+	maxWidth := m.windowWidth - 2
+	if maxWidth < 20 {
+		maxWidth = 20
+	}
+	return maxWidth
 }
