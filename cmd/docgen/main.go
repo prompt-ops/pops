@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/prompt-ops/pops/cmd/pops/app"
+	"github.com/prompt-ops/pops/internal/commands"
 
 	"github.com/spf13/cobra/doc"
 )
@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = doc.GenMarkdownTreeCustom(app.NewRootCommand(), output, frontmatter, link)
+	err = doc.GenMarkdownTreeCustom(commands.NewRootCmd(), output, frontmatter, link)
 	if err != nil {
 		log.Fatal(err) //nolint:forbidigo // this is OK inside the main function.
 	}
@@ -48,7 +48,7 @@ description: "Details on the %s Prompt-Ops CLI command"
 func frontmatter(filename string) string {
 	name := filepath.Base(filename)
 	base := strings.TrimSuffix(name, path.Ext(name))
-	command := strings.Replace(base, "_", " ", -1)
+	command := strings.ReplaceAll(base, "_", " ")
 	url := "/reference/cli/" + strings.ToLower(base) + "/"
 	return fmt.Sprintf(template, command, command, base, url, command)
 }

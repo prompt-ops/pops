@@ -141,7 +141,7 @@ func (b *BaseRDBMSConnection) CheckAuthentication() error {
 	if err != nil {
 		return fmt.Errorf("error connecting to the database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("error pinging the database: %v", err)
@@ -162,7 +162,7 @@ func (b *BaseRDBMSConnection) SetContext() error {
 	if err != nil {
 		return fmt.Errorf("error connecting to the database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	query, ok := TablesAndColumnsQueryMap[connectionDetails.Driver]
 	if !ok {
@@ -173,7 +173,7 @@ func (b *BaseRDBMSConnection) SetContext() error {
 	if err != nil {
 		return fmt.Errorf("error querying database schema: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var schema, table, column, dataType string
@@ -289,13 +289,13 @@ func (b *BaseRDBMSConnection) ExecuteCommand(command string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to the database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows, err := db.Query(command)
 	if err != nil {
-		return nil, fmt.Errorf("Error executing query: %v", err)
+		return nil, fmt.Errorf("error executing query: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	columns, err := rows.Columns()
 	if err != nil {
@@ -401,7 +401,7 @@ func (p *PostgreSQLConnection) GetCommand(prompt string) (string, error) {
 		// Call SetContext to populate the tables and columns.
 		// This is a fallback in case SetContext is not called.
 		if err := p.SetContext(); err != nil {
-			return "", fmt.Errorf("Error getting command: %v", err)
+			return "", fmt.Errorf("error getting command: %v", err)
 		}
 	}
 
@@ -423,7 +423,7 @@ func (p *PostgreSQLConnection) GetAnswer(prompt string) (string, error) {
 		// Call SetContext to populate the tables and columns.
 		// This is a fallback in case SetContext is not called.
 		if err := p.SetContext(); err != nil {
-			return "", fmt.Errorf("Error getting answer: %v", err)
+			return "", fmt.Errorf("error getting answer: %v", err)
 		}
 	}
 
