@@ -51,7 +51,7 @@ func loadConnections() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var loadedConnections []conn.Connection
 	if err := json.NewDecoder(file).Decode(&loadedConnections); err != nil {
@@ -96,7 +96,7 @@ func writeConnections() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
